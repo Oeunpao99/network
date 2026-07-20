@@ -32,6 +32,28 @@ class CustomerSiteRead(CustomerSiteCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RouteFeasibilityRequest(BaseModel):
+    customer_site_id: int
+    requested_capacity: str = Field(min_length=1, max_length=64)
+
+
+class RouteFeasibilityResponse(BaseModel):
+    decision: str
+    reason: str
+    customer_site_name: str
+    requested_capacity: str
+    coverage_zone_name: str | None
+    coverage_serviceable: bool
+    nearest_pop_name: str | None
+    nearest_pop_distance_km: float | None
+    available_pop_ports: int | None
+    nearest_route_id: str | None
+    nearest_route_name: str | None
+    nearest_route_distance_km: float | None
+    route_available_capacity_gbps: float | None
+    route_is_candidate: bool
+
+
 class CustomerCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     site_id: int

@@ -181,6 +181,7 @@ function App() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [aiContext, setAiContext] = useState(null);
+  const [searchTarget, setSearchTarget] = useState(null);
 
   const pageTitles = {
     "tc-overview": "Overview",
@@ -376,15 +377,33 @@ function App() {
     setSelectedCustomer(null);
   }
 
+  function navigate(view) {
+    setSearchTarget(null);
+    setActiveView(view);
+  }
+
+  function selectSearchResult(result) {
+    if (result.type === "customer") {
+      setSearchTarget(result);
+      setActiveView("tc-accounts");
+    } else if (result.type === "ticket") {
+      setSearchTarget(result);
+      setActiveView("tc-tickets");
+    } else {
+      setSearchTarget(null);
+      setActiveView("map");
+    }
+  }
+
   return (
     <div className="app">
-      <Sidebar activeView={activeView} onNavigate={setActiveView} />
+      <Sidebar activeView={activeView} onNavigate={navigate} />
       <main className="main">
-        <Topbar title={pageTitles[activeView]} />
+        <Topbar title={pageTitles[activeView]} customers={customers} customerSites={customerSites} onSelectResult={selectSearchResult} />
         <Dashboard active={activeView === "dashboard"} customers={customers} activity={activity} summary={dashboardSummary} onOpenDrawer={openDrawer} />
         <PopManagement active={activeView === "popManagement"} pops={pops} onAddPop={addPop} />
         <Customers active={activeView === "customers"} customers={customers} customerSites={customerSites} pops={pops} onOpenDrawer={openDrawer} onAddCustomer={addCustomer} />
-        <TelecomCrmPrototype active={Boolean(telecomCrmView)} view={telecomCrmView} />
+        <TelecomCrmPrototype active={Boolean(telecomCrmView)} view={telecomCrmView} selection={searchTarget} />
         <AssetManagement active={activeView === "assets"} assets={assets} onAddAsset={addAsset} />
         <ContractManagement active={activeView === "contracts"} contracts={contracts} circuits={circuits} assets={assets} pops={pops} onAddContract={addContract} onAddCircuit={addCircuit} />
         <QuoteManagement active={activeView === "quotes"} customers={customers} products={products} quotes={quotes} onAddQuote={addQuote} />

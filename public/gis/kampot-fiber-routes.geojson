@@ -1,0 +1,57 @@
+{
+  "type": "FeatureCollection",
+  "name": "kampot-demo-fiber-routes",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "RT-KPT-001",
+        "name": "Kampot City Ring",
+        "route_class": "Metro ring",
+        "utilization_pct": 12,
+        "capacity_available_gbps": 5.0,
+        "status": "Candidate corridor",
+        "color": "#00B39B",
+        "source": "Demo data - not surveyed or verified"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[104.1742, 10.6082], [104.1786, 10.6101], [104.1835, 10.6114], [104.1874, 10.6088], [104.1848, 10.6049], [104.1781, 10.6051], [104.1742, 10.6082]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "RT-KPT-002",
+        "name": "Kampot Riverside Access",
+        "route_class": "Access fiber",
+        "utilization_pct": 18,
+        "capacity_available_gbps": 3.0,
+        "status": "Candidate corridor",
+        "color": "#7C65C4",
+        "source": "Demo data - not surveyed or verified"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[104.1781, 10.6051], [104.1794, 10.6007], [104.1818, 10.5969], [104.1844, 10.5948]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "RT-KPT-003",
+        "name": "Kampot Bokor Access Corridor",
+        "route_class": "Long-haul fiber",
+        "utilization_pct": 7,
+        "capacity_available_gbps": 7.5,
+        "status": "Candidate corridor",
+        "color": "#F2A93B",
+        "source": "Demo data - not surveyed or verified"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[104.1874, 10.6088], [104.1914, 10.6137], [104.1988, 10.6185], [104.2074, 10.6252]]
+      }
+    }
+  ]
+}

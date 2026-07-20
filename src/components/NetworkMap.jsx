@@ -103,14 +103,18 @@ function NetworkMap({ active, pops, customerSites, assets, onPortAnalyze }) {
 
   async function loadSampleGisLayers(showMessage = false) {
     try {
-      const [routeResponse, coverageResponse] = await Promise.all([
+      const [routeResponse, coverageResponse, kampotRouteResponse, kampotCoverageResponse] = await Promise.all([
         fetch("/gis/fiber-routes.geojson"),
         fetch("/gis/coverage-zones.geojson"),
+        fetch("/gis/kampot-fiber-routes.geojson"),
+        fetch("/gis/kampot-coverage-zones.geojson"),
       ]);
-      if (!routeResponse.ok || !coverageResponse.ok) throw new Error("One or more GIS layers could not be loaded.");
-      const [fiberRoutes, coverageZones] = await Promise.all([routeResponse.json(), coverageResponse.json()]);
-      if (!isFeatureCollection(fiberRoutes) || !isFeatureCollection(coverageZones)) throw new Error("GIS files must be GeoJSON FeatureCollections.");
-      setGisLayers({ fiberRoutes, coverageZones, error: null, source: "QGIS SAMPLE" });
+      if (!routeResponse.ok || !coverageResponse.ok || !kampotRouteResponse.ok || !kampotCoverageResponse.ok) throw new Error("One or more GIS layers could not be loaded.");
+      const [baseRoutes, baseCoverage, kampotRoutes, kampotCoverage] = await Promise.all([routeResponse.json(), coverageResponse.json(), kampotRouteResponse.json(), kampotCoverageResponse.json()]);
+      if (!isFeatureCollection(baseRoutes) || !isFeatureCollection(baseCoverage) || !isFeatureCollection(kampotRoutes) || !isFeatureCollection(kampotCoverage)) throw new Error("GIS files must be GeoJSON FeatureCollections.");
+      const fiberRoutes = { ...baseRoutes, features: [...baseRoutes.features, ...kampotRoutes.features] };
+      const coverageZones = { ...baseCoverage, features: [...baseCoverage.features, ...kampotCoverage.features] };
+      setGisLayers({ fiberRoutes, coverageZones, error: null, source: "QGIS + KAMPOT DEMO" });
       if (showMessage) setGisMessage("Sample QGIS layers restored.");
     } catch (error) {
       setGisLayers({ fiberRoutes: null, coverageZones: null, error: error.message, source: "LOAD ERROR" });

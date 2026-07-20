@@ -1,0 +1,36 @@
+{
+  "type": "FeatureCollection",
+  "name": "kampot-demo-coverage-zones",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "COV-KPT-CENTRAL",
+        "name": "Kampot Central Demo Zone",
+        "serviceability": "Serviceable",
+        "status": "Standard install",
+        "color": "#00B39B",
+        "source": "Demo data - not a live service footprint"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[104.1731, 10.6132], [104.1887, 10.6132], [104.1887, 10.6024], [104.1731, 10.6024], [104.1731, 10.6132]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "COV-KPT-OUTER",
+        "name": "Kampot Outer Demo Zone",
+        "serviceability": "Survey required",
+        "status": "Field survey required",
+        "color": "#F2A93B",
+        "source": "Demo data - not a live service footprint"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[104.1887, 10.6205], [104.2118, 10.6205], [104.2118, 10.5971], [104.1887, 10.5971], [104.1887, 10.6205]]]
+      }
+    }
+  ]
+}

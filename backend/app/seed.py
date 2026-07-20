@@ -199,6 +199,54 @@ ACTIVITIES.extend([
     {"time_label": "08:36", "html": "<b>Sihanoukville Gateway</b> capacity reservation created for port expansion"},
 ])
 
+# Kampot demonstration data. These records model a planned rollout and are not live network inventory.
+POPS.extend([
+    {"code": "POP-KPT", "name": "Kampot Demo POP", "latitude": 10.6082, "longitude": 104.1805, "ports_total": 48, "ports_used": 16, "switch_id": "SW-CORE-KPT-DEMO"},
+])
+
+SITES.extend([
+    {"code": "SITE-KPT-01", "name": "Kampot Seaside Hotel Demo Site", "latitude": 10.6074, "longitude": 104.1794},
+    {"code": "SITE-KPT-02", "name": "Kampot Pepper Cooperative Demo Site", "latitude": 10.6102, "longitude": 104.1988},
+])
+
+ASSETS.extend([
+    {"code": "AST-KPT-01", "name": "Kampot Demo Fiber Ring", "asset_type": "Fiber Route", "location_name": "Kampot city center", "latitude": 10.6082, "longitude": 104.1805, "capacity_total": 96, "capacity_used": 12, "capacity_unit": "fiber cores", "status": "Planned"},
+    {"code": "AST-KPT-02", "name": "Kampot Demo Riverside Duct", "asset_type": "Cable Duct", "location_name": "Kampot riverside access", "latitude": 10.6031, "longitude": 104.1808, "capacity_total": 24, "capacity_used": 4, "capacity_unit": "duct slots", "status": "Planned"},
+    {"code": "AST-KPT-03", "name": "Kampot Demo Access Tower", "asset_type": "Tower Space", "location_name": "Kampot outer service zone", "latitude": 10.6185, "longitude": 104.1988, "capacity_total": 6, "capacity_used": 1, "capacity_unit": "antenna slots", "status": "Planned"},
+])
+
+CUSTOMERS.extend([
+    {"name": "Kampot Seaside Hotel Demo", "site": "SITE-KPT-01", "pop": "POP-KPT", "plan": "DPLC", "account_type": "Enterprise", "verification_status": "KYB Verified", "billing_model": "Recurring", "status": "Onboarding", "risk": "Medium", "monthly_value": 2200, "tenure": "New", "port": "GE0/3/09", "reasons": ["Demo candidate route requires a field survey"]},
+    {"name": "Kampot Pepper Cooperative Demo", "site": "SITE-KPT-02", "pop": "POP-KPT", "plan": "TC-Biz Fiber 500", "account_type": "SME", "verification_status": "Pending", "billing_model": "Recurring", "status": "Onboarding", "risk": "Low", "monthly_value": 120, "tenure": "New", "port": "GE0/3/12", "reasons": ["Demo outer coverage zone requires a survey"]},
+])
+
+CONTRACTS.extend([
+    {"contract_number": "CON-KPT-001", "account_name": "Kampot Seaside Hotel Demo", "account_segment": "Enterprise", "product": "DPLC", "status": "Feasibility", "start_date": "2026-08-01", "end_date": "2029-07-31", "monthly_value": 2200, "sla_availability": 99.90, "sla_mttr_hours": 4, "msa_number": "MSA-KPT-DEMO-01", "service_schedule_number": "SS-KPT-001", "route_diversity": "Pending survey", "service_credit_rate": 10},
+])
+
+CIRCUITS.extend([
+    {"circuit_id": "CIR-KPT-DEMO-01", "contract": "CON-KPT-001", "asset": "AST-KPT-01", "pop": "POP-KPT", "endpoint_a": "Kampot Seaside Hotel Demo Site", "endpoint_b": "Kampot Demo POP", "bandwidth": "100 Mbps", "provisioning_stage": "Survey", "status": "Planned"},
+])
+
+TICKETS.extend([
+    {"id": "TCK-KPT-001", "customer": "Kampot Seaside Hotel Demo", "text": "Demo field survey required to validate the candidate Kampot City Ring corridor", "opened_on": "2026-07-20", "ticket_class": "Enterprise", "priority": "Medium", "contract": "CON-KPT-001", "circuit": "CIR-KPT-DEMO-01", "sla_due_at": "2026-07-24T09:00:00+00:00"},
+])
+
+INVOICES.extend([
+    {"id": "INV-KPT-001", "customer": "Kampot Seaside Hotel Demo", "amount": 2200, "status": "pending", "issued": "2026-07-01", "due": "2026-07-31", "paid": None},
+    {"id": "INV-KPT-002", "customer": "Kampot Pepper Cooperative Demo", "amount": 120, "status": "pending", "issued": "2026-07-01", "due": "2026-07-31", "paid": None},
+])
+
+QUOTES.extend([
+    {"quote_number": "QTE-KPT-001", "account": "Kampot Seaside Hotel Demo", "product": "PRD-DPLC", "status": "Submitted", "feasibility_status": "Pending", "requested_capacity": "100 Mbps", "route_distance_km": 0.3, "term_months": 36, "monthly_value": 2200, "notes": "Demo quote pending a Kampot candidate-route field survey."},
+    {"quote_number": "QTE-KPT-002", "account": "Kampot Pepper Cooperative Demo", "product": "PRD-BIZ-500", "status": "Draft", "feasibility_status": "Not required", "requested_capacity": "500 Mbps", "route_distance_km": None, "term_months": 12, "monthly_value": 120, "notes": "Demo business fiber quote for the Kampot outer zone."},
+])
+
+ACTIVITIES.extend([
+    {"time_label": "Demo", "html": "<b>Kampot Demo POP</b> added with planned fiber, duct, and tower assets"},
+    {"time_label": "Demo", "html": "<b>Kampot Seaside Hotel Demo</b> moved into the route feasibility survey queue"},
+])
+
 
 def seed() -> None:
     with SessionLocal() as session:

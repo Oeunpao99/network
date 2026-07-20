@@ -689,7 +689,12 @@ function viewCatalog(){
 
 /* ---------- Orders ---------- */
 function viewOrders(){
-  return `<div class="pipeline">
+  return `
+  <div class="section-head">
+    <div><div class="panel-title">Provisioning pipeline</div><div class="panel-caption" style="margin-bottom:0;">Validate GIS coverage and network capacity before committing a route.</div></div>
+    <button class="btn primary" type="button" data-run-feasibility>Run route feasibility</button>
+  </div>
+  <div class="pipeline">
     ${ORDER_STAGES.map((stage, idx) => `
       <div class="pipeline-col">
         <div class="pipeline-col-head">
@@ -1043,8 +1048,23 @@ async function loadBackendData(){
     });
 
     render();
+    openSearchSelection();
   } catch(error) {
     console.error('CRM backend data could not be loaded. Showing sample data instead.', error);
+  }
+}
+
+function openSearchSelection(){
+  const accountId = Number(crmParams.get('accountId'));
+  const ticketId = crmParams.get('ticketId');
+  if(ticketId){
+    const ticket = TICKETS.find((item) => item.id === ticketId);
+    if(ticket) window.setTimeout(() => openTicketDetail(ticket), 0);
+    return;
+  }
+  if(Number.isInteger(accountId) && accountId > 0){
+    const account = ACCOUNTS.find((item) => item.apiId === accountId);
+    if(account) window.setTimeout(() => openAccountRecord(account), 0);
   }
 }
 
@@ -1052,6 +1072,7 @@ async function loadBackendData(){
 function attachViewHandlers(){
   document.querySelector('[data-add-account]')?.addEventListener('click', openAccountForm);
   document.querySelector('[data-add-product]')?.addEventListener('click', openProductForm);
+  document.querySelector('[data-run-feasibility]')?.addEventListener('click', openFeasibilityForm);
   document.querySelectorAll('.chip[data-filter]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.accountFilter = el.dataset.filter; render(); });
   });
@@ -1374,6 +1395,77 @@ function openProductForm(){
   document.getElementById('productCancel').addEventListener('click', closeDrawer);
   document.getElementById('productPricingModel').addEventListener('change', updateProductPriceField);
   document.getElementById('productForm').addEventListener('submit', createProduct);
+}
+
+function openFeasibilityForm(){
+  if(!SITE_OPTIONS.length){
+    window.alert('Customer sites are still loading. Please try again in a moment.');
+    return;
+  }
+  const siteOptions = SITE_OPTIONS.map((site) => `<option value="${site.id}">${escapeHtml(site.name)}</option>`).join('');
+  document.getElementById('drawerBody').classList.remove('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">Route feasibility</div>
+    <div class="drawer-sub">Pre-sales GIS and capacity assessment. A field survey is still required for candidate routes.</div>
+    <form id="feasibilityForm">
+      <div class="drawer-field"><div class="drawer-field-label">Customer site</div><select class="crm-input" name="siteId" required>${siteOptions}</select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Requested capacity</div><input class="crm-input" name="requestedCapacity" value="100 Mbps" required placeholder="1 Gbps"></div>
+      <div class="btn-row" style="margin-top:20px;"><button class="btn primary" id="runFeasibilityButton" type="submit">Run check</button><button class="btn" id="feasibilityCancel" type="button">Cancel</button></div>
+      <div class="form-submit-error" id="feasibilityFormError" style="display:none;"></div>
+    </form>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('feasibilityCancel').addEventListener('click', closeDrawer);
+  document.getElementById('feasibilityForm').addEventListener('submit', runFeasibility);
+}
+
+async function runFeasibility(event){
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const button = document.getElementById('runFeasibilityButton');
+  const error = document.getElementById('feasibilityFormError');
+  button.disabled = true;
+  button.textContent = 'Checking...';
+  error.style.display = 'none';
+  try {
+    const result = await requestApi('/api/route-feasibility', {
+      method:'POST',
+      body:JSON.stringify({ customer_site_id:Number(form.get('siteId')), requested_capacity:form.get('requestedCapacity').trim() }),
+    });
+    openFeasibilityResult(result);
+  } catch(requestError) {
+    error.textContent = requestError.message || 'Unable to run route feasibility.';
+    error.style.display = 'block';
+    button.disabled = false;
+    button.textContent = 'Run check';
+  }
+}
+
+function openFeasibilityResult(result){
+  const tone = result.decision === 'Serviceable' ? 'ok' : result.decision === 'Survey required' ? 'warn' : 'crit';
+  const routeCapacity = result.route_available_capacity_gbps === null ? 'Not supplied' : `${result.route_available_capacity_gbps} Gbps available`;
+  const routeDistance = result.nearest_route_distance_km === null ? 'No route found' : `${result.nearest_route_distance_km} km from site`;
+  const popDistance = result.nearest_pop_distance_km === null ? 'No POP found' : `${result.nearest_pop_distance_km} km from site`;
+  document.getElementById('drawerBody').classList.add('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">Feasibility result</div>
+    <div class="drawer-sub">${escapeHtml(result.customer_site_name)} · ${escapeHtml(result.requested_capacity)}</div>
+    <div class="drawer-divider"></div>
+    <div class="drawer-field"><div class="drawer-field-label">Decision</div><div class="drawer-field-value"><span class="sla-pill ${tone}">${escapeHtml(result.decision)}</span></div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Assessment</div><div class="drawer-field-value">${escapeHtml(result.reason)}</div></div>
+    <div class="drawer-divider"></div>
+    <div class="drawer-field"><div class="drawer-field-label">Coverage zone</div><div class="drawer-field-value">${escapeHtml(result.coverage_zone_name || 'No matching zone')} · ${result.coverage_serviceable ? 'Serviceable' : 'Not confirmed'}</div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Nearest fiber route</div><div class="drawer-field-value">${escapeHtml(result.nearest_route_name || 'No route found')} · ${routeDistance}<br><span class="mono">${escapeHtml(result.nearest_route_id || 'No route ID')} · ${routeCapacity}${result.route_is_candidate ? ' · candidate corridor' : ''}</span></div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Nearest POP</div><div class="drawer-field-value">${escapeHtml(result.nearest_pop_name || 'No POP found')} · ${popDistance}<br><span class="mono">${result.available_pop_ports === null ? 'No port data' : `${result.available_pop_ports} ports available`}</span></div></div>
+    <div class="btn-row" style="margin-top:20px;"><button class="btn primary" id="rerunFeasibility" type="button">Run another check</button><button class="btn" id="feasibilityClose" type="button">Close</button></div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('feasibilityClose').addEventListener('click', closeDrawer);
+  document.getElementById('rerunFeasibility').addEventListener('click', openFeasibilityForm);
 }
 
 function updateProductPriceField(event){
