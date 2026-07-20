@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telecom Cambodia — CRM Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A1220;
+    --bg-panel:#101A2E;
+    --bg-panel-alt:#152238;
+    --bg-hover:#1A2A45;
+    --border:#213254;
+    --border-soft:#182742;
+    --text-primary:#E9EEF8;
+    --text-secondary:#8DA0C4;
+    --text-muted:#54658C;
+    --signal:#33E6C8;
+    --signal-dim:#1A6E62;
+    --signal-glow: rgba(51,230,200,0.18);
+    --amber:#F2A93B;
+    --amber-dim: rgba(242,169,59,0.14);
+    --red:#FF6262;
+    --red-dim: rgba(255,98,98,0.14);
+    --green:#4FDD8F;
+    --green-dim: rgba(79,221,143,0.14);
+    --violet:#9C8CFB;
+    --violet-dim: rgba(156,140,251,0.16);
+    --radius:10px;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text-primary);
+    font-family:var(--font-body);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  body.embedded .app-shell{ grid-template-columns:1fr; }
+  body.embedded .sidebar,
+  body.embedded .topbar{ display:none; }
+  ::selection{ background:var(--signal-glow); color:var(--text-primary); }
+
+  /* ---------- Layout ---------- */
+  .app-shell{ display:grid; grid-template-columns:248px 1fr; min-height:100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--bg-panel);
+    border-right:1px solid var(--border-soft);
+    display:flex; flex-direction:column;
+    position:relative;
+    overflow:hidden;
+  }
+  .fiber-rail{
+    position:absolute; left:0; top:0; bottom:0; width:2px;
+    background:linear-gradient(180deg, transparent, var(--signal-dim) 15%, var(--signal-dim) 85%, transparent);
+  }
+  .fiber-rail::before{
+    content:''; position:absolute; left:-2px; width:6px; height:6px; border-radius:50%;
+    background:var(--signal); box-shadow:0 0 8px 2px var(--signal-glow);
+    animation: pulse-travel 3.2s linear infinite;
+  }
+  @keyframes pulse-travel{
+    0%{ top:-2%; opacity:0; }
+    8%{ opacity:1; }
+    92%{ opacity:1; }
+    100%{ top:100%; opacity:0; }
+  }
+  .brand{
+    padding:22px 20px 18px 24px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .brand-mark{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .brand-mark svg{ flex-shrink:0; }
+  .brand-name{ font-family:var(--font-display); font-weight:600; font-size:14.5px; letter-spacing:0.2px; }
+  .brand-sub{ font-size:11px; color:var(--text-muted); margin-top:1px; }
+  .brand-title{ font-family:var(--font-display); font-weight:600; font-size:16.5px; color:var(--text-primary); }
+  .brand-caption{ font-size:11.5px; color:var(--text-secondary); margin-top:3px; }
+
+  nav.nav{ padding:14px 12px; flex:1; overflow-y:auto; }
+  .nav-group-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.09em;
+    color:var(--text-muted); padding:14px 12px 6px;
+    font-weight:600;
+  }
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding:9px 12px; border-radius:8px; cursor:pointer;
+    color:var(--text-secondary); font-size:13.5px; font-weight:500;
+    transition:background .12s ease, color .12s ease;
+    margin-bottom:2px;
+  }
+  .nav-item svg{ flex-shrink:0; opacity:0.85; }
+  .nav-item:hover{ background:var(--bg-hover); color:var(--text-primary); }
+  .nav-item.active{ background:var(--bg-panel-alt); color:var(--text-primary); box-shadow:inset 2px 0 0 var(--signal); }
+  .nav-item.active svg{ opacity:1; }
+  .nav-item.active svg *{ stroke:var(--signal); }
+
+  .sidebar-footer{
+    padding:14px 16px; border-top:1px solid var(--border-soft);
+    display:flex; align-items:center; gap:10px;
+  }
+  .avatar{
+    width:30px; height:30px; border-radius:50%;
+    background:linear-gradient(135deg, var(--signal), var(--violet));
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:600; font-size:12px; color:#04120F;
+  }
+  .footer-name{ font-size:12.5px; font-weight:600; color:var(--text-primary); }
+  .footer-role{ font-size:11px; color:var(--text-muted); }
+
+  /* ---------- Main ---------- */
+  main{ display:flex; flex-direction:column; min-width:0; }
+  .topbar{
+    height:64px; padding:0 28px; display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border-soft); background:rgba(16,26,46,0.5);
+    backdrop-filter:blur(6px); position:sticky; top:0; z-index:5;
+  }
+  .page-title{ font-family:var(--font-display); font-weight:600; font-size:18px; }
+  .page-desc{ font-size:12px; color:var(--text-muted); margin-top:1px; }
+  .topbar-right{ display:flex; align-items:center; gap:14px; }
+  .proto-flag{
+    font-size:11px; color:var(--text-muted); border:1px solid var(--border);
+    padding:5px 10px; border-radius:20px; display:flex; align-items:center; gap:6px;
+  }
+  .proto-flag .dot{ width:6px; height:6px; border-radius:50%; background:var(--amber); }
+  .search-box{
+    display:flex; align-items:center; gap:8px; background:var(--bg-panel-alt);
+    border:1px solid var(--border); border-radius:8px; padding:7px 12px; width:230px;
+    color:var(--text-muted); font-size:12.5px;
+  }
+
+  .content{ padding:26px 28px 60px; flex:1; }
+  .view{ animation: fade-in .25s ease; }
+  @keyframes fade-in{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- Components ---------- */
+  .kpi-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:22px; }
+  .kpi-card{
+    background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:var(--radius);
+    padding:16px 18px;
+  }
+  .kpi-label{ font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; }
+  .kpi-value{ font-family:var(--font-display); font-size:26px; font-weight:600; }
+  .kpi-delta{ font-size:11.5px; margin-top:6px; display:flex; align-items:center; gap:5px; }
+  .kpi-delta.up{ color:var(--green); }
+  .kpi-delta.warn{ color:var(--amber); }
+
+  .panel-row{ display:grid; grid-template-columns:1.4fr 1fr; gap:14px; margin-bottom:22px; }
+  .panel{
+    background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .panel-title{ font-family:var(--font-display); font-weight:600; font-size:14px; margin-bottom:2px; }
+  .panel-caption{ font-size:11.5px; color:var(--text-muted); margin-bottom:16px; }
+
+  .bar-row{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .bar-label{ width:112px; font-size:12px; color:var(--text-secondary); flex-shrink:0; }
+  .bar-track{ flex:1; height:8px; background:var(--bg-panel-alt); border-radius:6px; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:6px; }
+  .bar-value{ width:38px; text-align:right; font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); }
+
+  .spark{ display:flex; align-items:flex-end; gap:6px; height:70px; margin-top:6px; }
+  .spark-bar{ flex:1; background:linear-gradient(180deg, var(--signal), var(--signal-dim)); border-radius:3px 3px 0 0; opacity:0.85; }
+  .spark-labels{ display:flex; gap:6px; margin-top:6px; }
+  .spark-labels span{ flex:1; text-align:center; font-size:10px; color:var(--text-muted); }
+
+  .section-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .filter-chips{ display:flex; gap:8px; }
+  .chip{
+    padding:6px 13px; border-radius:20px; font-size:12px; font-weight:500;
+    border:1px solid var(--border); color:var(--text-secondary); cursor:pointer;
+    transition:all .12s ease;
+  }
+  .chip:hover{ border-color:var(--text-muted); color:var(--text-primary); }
+  .chip.active{ background:var(--signal-glow); border-color:var(--signal-dim); color:var(--signal); }
+
+  table{ width:100%; border-collapse:collapse; }
+  thead th{
+    text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-muted); font-weight:600; padding:0 14px 10px; border-bottom:1px solid var(--border-soft);
+  }
+  tbody td{ padding:13px 14px; border-bottom:1px solid var(--border-soft); font-size:13px; vertical-align:middle; }
+  tbody tr{ cursor:pointer; transition:background .1s ease; }
+  tbody tr:hover{ background:var(--bg-panel-alt); }
+  tbody tr:last-child td{ border-bottom:none; }
+  .table-wrap{ background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden; padding-top:14px; }
+
+  .mono{ font-family:var(--font-mono); font-size:12px; color:var(--text-secondary); }
+  .cell-name{ font-weight:600; color:var(--text-primary); }
+  .cell-sub{ font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+
+  .tag{ display:inline-flex; align-items:center; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; }
+  .tag.individual{ background:rgba(141,160,196,0.14); color:var(--text-secondary); }
+  .tag.business{ background:var(--signal-glow); color:var(--signal); }
+  .tag.enterprise{ background:var(--violet-dim); color:var(--violet); }
+  .tag.wholesale{ background:var(--amber-dim); color:var(--amber); }
+
+  .status-dot{ display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:500; }
+  .status-dot::before{ content:''; width:7px; height:7px; border-radius:50%; }
+  .status-dot.active::before, .status-dot.healthy::before, .status-dot.paid::before{ background:var(--green); box-shadow:0 0 6px 1px var(--green-dim); }
+  .status-dot.risk::before, .status-dot.due::before{ background:var(--amber); box-shadow:0 0 6px 1px var(--amber-dim); }
+  .status-dot.breach::before, .status-dot.suspended::before, .status-dot.overdue::before{ background:var(--red); box-shadow:0 0 6px 1px var(--red-dim); }
+
+  .signal-bars{ display:inline-flex; align-items:flex-end; gap:2px; height:14px; }
+  .signal-bars span{ width:3px; background:var(--border); border-radius:1px; }
+  .signal-bars span.on{ background:var(--signal); }
+  .signal-bars span:nth-child(1){height:30%;} .signal-bars span:nth-child(2){height:55%;}
+  .signal-bars span:nth-child(3){height:75%;} .signal-bars span:nth-child(4){height:100%;}
+
+  .sla-pill{ font-family:var(--font-mono); font-size:11px; padding:4px 9px; border-radius:6px; font-weight:600; }
+  .sla-pill.ok{ background:var(--green-dim); color:var(--green); }
+  .sla-pill.warn{ background:var(--amber-dim); color:var(--amber); }
+  .sla-pill.crit{ background:var(--red-dim); color:var(--red); }
+
+  /* Catalog */
+  .catalog-group{ margin-bottom:26px; }
+  .catalog-group-head{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .catalog-group-title{ font-family:var(--font-display); font-weight:600; font-size:14.5px; }
+  .catalog-group-count{ font-size:11px; color:var(--text-muted); background:var(--bg-panel-alt); padding:2px 8px; border-radius:10px; }
+  .catalog-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+  .product-card{
+    background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:var(--radius);
+    padding:15px 16px; transition:border-color .12s ease;
+  }
+  .product-card:hover{ border-color:var(--signal-dim); }
+  .product-card-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .product-name{ font-weight:600; font-size:13.5px; }
+  .product-model{ font-size:10.5px; color:var(--text-muted); margin-top:8px; border-top:1px solid var(--border-soft); padding-top:8px; }
+
+  /* Pipeline / Kanban */
+  .pipeline{ display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; }
+  .pipeline-col{ background:var(--bg-panel); border:1px solid var(--border-soft); border-radius:var(--radius); padding:12px; min-height:400px; }
+  .pipeline-col-head{ display:flex; justify-content:space-between; align-items:center; padding:4px 4px 12px; border-bottom:1px solid var(--border-soft); margin-bottom:10px; }
+  .pipeline-col-title{ font-size:12px; font-weight:600; color:var(--text-secondary); }
+  .pipeline-col-count{ font-size:11px; color:var(--text-muted); font-family:var(--font-mono); }
+  .order-card{ background:var(--bg-panel-alt); border:1px solid var(--border-soft); border-radius:8px; padding:11px 12px; margin-bottom:9px; }
+  .order-card-id{ font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); margin-bottom:5px; }
+  .order-card-name{ font-size:12.5px; font-weight:600; margin-bottom:6px; }
+  .order-card-meta{ display:flex; justify-content:space-between; align-items:center; }
+
+  /* Drawer */
+  .drawer-overlay{
+    position:fixed; inset:0; background:rgba(6,10,20,0.55); backdrop-filter:blur(2px);
+    display:none; align-items:stretch; justify-content:flex-end; z-index:50;
+  }
+  .drawer-overlay.open{ display:flex; }
+  .drawer{
+    width:400px; background:var(--bg-panel); border-left:1px solid var(--border);
+    padding:24px; overflow-y:auto; animation: slide-in .2s ease;
+  }
+  .drawer.wide{ width:480px; }
+  .tab-row{ display:flex; gap:4px; border-bottom:1px solid var(--border-soft); margin-bottom:18px; }
+  .tab-item{
+    padding:8px 4px; margin-right:14px; font-size:12px; font-weight:600; color:var(--text-muted);
+    cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .12s ease;
+  }
+  .tab-item:hover{ color:var(--text-primary); }
+  .tab-item.active{ color:var(--text-primary); border-color:var(--signal); }
+  @keyframes slide-in{ from{ transform:translateX(20px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+  .drawer-close{ float:right; cursor:pointer; color:var(--text-muted); font-size:20px; line-height:1; }
+  .drawer-close:hover{ color:var(--text-primary); }
+  .drawer-title{ font-family:var(--font-display); font-size:17px; font-weight:600; margin-bottom:2px; }
+  .drawer-sub{ font-size:12px; color:var(--text-muted); margin-bottom:20px; }
+  .drawer-field{ margin-bottom:14px; }
+  .drawer-field-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:4px; }
+  .drawer-field-value{ font-size:13.5px; color:var(--text-primary); }
+  .drawer-divider{ height:1px; background:var(--border-soft); margin:18px 0; }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:8px;
+    font-size:12.5px; font-weight:600; cursor:pointer; border:1px solid var(--border);
+    color:var(--text-primary); background:var(--bg-panel-alt); transition:all .12s ease;
+  }
+  .btn:hover{ border-color:var(--signal-dim); }
+  .btn.primary{ background:var(--signal); color:#03120F; border-color:var(--signal); }
+  .btn.primary:hover{ opacity:0.9; }
+  .btn-row{ display:flex; gap:8px; margin-top:20px; }
+
+  .empty-note{ font-size:11px; color:var(--text-muted); text-align:center; padding:20px 0; }
+
+  ::-webkit-scrollbar{ width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:5px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="fiber-rail"></div>
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <circle cx="6" cy="20" r="2.6" stroke="#33E6C8" stroke-width="1.6"/>
+          <circle cx="20" cy="6" r="2.6" stroke="#9C8CFB" stroke-width="1.6"/>
+          <path d="M8.2 17.8 L17.8 8.2" stroke="#33E6C8" stroke-width="1.4" stroke-dasharray="2.4 2.4"/>
+        </svg>
+        <div>
+          <div class="brand-name">Proseth AI Agent Factory</div>
+          <div class="brand-sub">for Telecom Cambodia</div>
+        </div>
+      </div>
+      <div class="brand-title">CRM Console</div>
+      <div class="brand-caption">Unified account, circuit &amp; billing view</div>
+    </div>
+
+    <nav class="nav" id="nav"></nav>
+
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Overview</div>
+        <div class="page-desc" id="pageDesc">Portfolio snapshot across all customer segments</div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#54658C" stroke-width="2"/><path d="M21 21l-4-4" stroke="#54658C" stroke-width="2" stroke-linecap="round"/></svg>
+          Search accounts, circuits, tickets…
+        </div>
+        <div class="proto-flag"><span class="dot"></span> Prototype · illustrative data</div>
+      </div>
+    </div>
+
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay">
+  <div class="drawer" id="drawerBody"></div>
+</div>
+
+<script>
+const crmParams = new URLSearchParams(window.location.search);
+if (crmParams.get('embedded') === '1') document.body.classList.add('embedded');
+const API_BASE = (crmParams.get('apiBase') || 'http://localhost:8000').replace(/\/$/, '');
+
+/* ============ ICONS ============ */
+const ICONS = {
+  overview: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="19" r="2.2" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="6" r="2.2" stroke="currentColor" stroke-width="1.8"/><circle cx="19" cy="19" r="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M6.8 17.5 10.5 8 M13.5 8 17.2 17.5" stroke="currentColor" stroke-width="1.6"/></svg>`,
+  accounts: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+  catalog: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="4" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="13" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.7"/></svg>`,
+  orders: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="4.5" cy="12" r="2" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.7"/><circle cx="19.5" cy="12" r="2" stroke="currentColor" stroke-width="1.7"/><path d="M6.5 12h3.5M14 12h3.5" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1 2.4"/></svg>`,
+  contracts: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6l7-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  billing: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6" width="17" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 10h17" stroke="currentColor" stroke-width="1.7"/><path d="M7 14.2h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+  tickets: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2 2 21h20L12 2z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 9.5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17.2" r="0.9" fill="currentColor"/></svg>`,
+  wholesale: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="6" cy="7" r="2.3" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="7" r="2.3" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="17" r="2.3" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="17" r="2.3" stroke="currentColor" stroke-width="1.7"/><path d="M8 8.3 16 15.7M16 8.3 8 15.7" stroke="currentColor" stroke-width="1.4"/></svg>`,
+};
+
+/* ============ NAV ============ */
+const NAV = [
+  { id:'overview', label:'Overview', desc:'Portfolio snapshot across all customer segments' },
+  { id:'accounts', label:'Accounts', desc:'Individual, business, enterprise and carrier accounts' },
+  { id:'catalog', label:'Product Catalog', desc:'Voice, internet, leased circuit and infrastructure products' },
+  { id:'orders', label:'Orders & Provisioning', desc:'Quote-to-activation pipeline by product type' },
+  { id:'contracts', label:'Contracts & SLA', desc:'Circuit-level SLA commitments and compliance' },
+  { id:'billing', label:'Billing', desc:'Recurring, usage-based and postpaid billing records' },
+  { id:'tickets', label:'Service Assurance', desc:'Fault tickets with SLA-aware prioritization' },
+  { id:'wholesale', label:'Wholesale Partner Portal', desc:'Self-service view for operator & ISP partners' },
+];
+
+/* ============ MOCK DATA ============ */
+let ACCOUNTS = [
+  { id:'ACC-10231', name:'Sok Dara', segment:'individual', products:['TC-Home 35Mbps'], mrr:12, status:'active', since:'2023-04', contact:'sok.dara@gmail.com', signal:3 },
+  { id:'ACC-10388', name:'Chan Sopheak', segment:'individual', products:['TC-Home 100Mbps','IP Phone'], mrr:19, status:'active', since:'2022-11', contact:'chan.sopheak@gmail.com', signal:4 },
+  { id:'ACC-20144', name:'Bayon Logistics Co., Ltd.', segment:'business', products:['TC-Biz 200Mbps','SIP Trunk'], mrr:340, status:'active', since:'2021-08', contact:'it@bayonlogistics.com.kh', signal:4 },
+  { id:'ACC-20177', name:'Golden Rice Import Co.', segment:'business', products:['TC-Biz 150Mbps','VPBX'], mrr:265, status:'risk', since:'2020-02', contact:'ops@goldenrice.kh', signal:2 },
+  { id:'ACC-30012', name:'Naga Bank PLC', segment:'enterprise', products:['TC-Enterprise','VPBX','IPLC — Singapore'], mrr:4200, status:'active', since:'2019-05', contact:'network.team@nagabank.kh', signal:4 },
+  { id:'ACC-30045', name:'Angkor Provincial Hospital Group', segment:'enterprise', products:['TC-Enterprise','DPLC ×3 sites'], mrr:2850, status:'active', since:'2020-09', contact:'ict@aphg.kh', signal:3 },
+  { id:'ACC-40009', name:'Mekong Mobile Co., Ltd.', segment:'wholesale', products:['Voice Transit','SMS Transit','IP Transit'], mrr:18600, status:'active', since:'2018-01', contact:'wholesale@mekongmobile.kh', signal:4 },
+  { id:'ACC-40021', name:'Chenla Rural ISP', segment:'wholesale', products:['DIX Peering','Leased Circuit E1 ×2'], mrr:5400, status:'risk', since:'2019-11', contact:'noc@chenlaisp.kh', signal:1 },
+];
+
+let CATALOG = {
+  'Voice Services': [
+    { name:'IP Phone', model:'Retail · flat monthly', seg:'Individual / Business' },
+    { name:'VPBX', model:'Retail · flat monthly', seg:'Business / Enterprise' },
+    { name:'SIP Trunk', model:'Retail · flat + usage tiers', seg:'Business / Enterprise' },
+    { name:'Special / Vanity Numbers', model:'Retail · one-time + monthly', seg:'All retail segments' },
+    { name:'Monthly Billed Phone Line', model:'Retail · postpaid consolidated', seg:'Individual / Business' },
+    { name:'Voice Transit', model:'Wholesale · per-minute settlement', seg:'Carrier / ISP' },
+    { name:'SMS Transit', model:'Wholesale · per-message settlement', seg:'Carrier / ISP' },
+  ],
+  'Internet Services': [
+    { name:'TC-Home', model:'Retail · flat monthly, tiered speed', seg:'Individual' },
+    { name:'TC-Biz', model:'Retail · flat monthly, tiered speed + SLA', seg:'Business' },
+    { name:'TC-Enterprise', model:'Custom quoted · SLA-backed', seg:'Enterprise / Government' },
+    { name:'DIX Peering', model:'Wholesale · port + usage', seg:'Carrier / ISP' },
+    { name:'IP Transit', model:'Wholesale · committed + burst', seg:'Carrier / ISP' },
+  ],
+  'Leased Circuit & Fiber': [
+    { name:'Leased Circuit E1', model:'Custom quoted · distance-based', seg:'Carrier / ISP' },
+    { name:'Leased Transmission Trunk Line E1', model:'Custom quoted · route-based', seg:'Carrier / ISP' },
+    { name:'Domestic Private Leased Circuit (DPLC)', model:'Contract · SLA uptime target', seg:'Enterprise / Carrier' },
+    { name:'International Private Leased Circuit (IPLC)', model:'Contract · SLA uptime target', seg:'Enterprise / Carrier' },
+    { name:'Split Connection', model:'Add-on · route diversity', seg:'Enterprise / Carrier' },
+    { name:'Metro / Short-haul / Long-haul / Cross-border Fiber', model:'Custom quoted · capacity-based', seg:'Carrier / ISP' },
+  ],
+  'Infrastructure Rental': [
+    { name:'Equipment Site Space', model:'Contract · fixed term rental', seg:'Carrier / ISP' },
+    { name:'Cable Duct Rental', model:'Contract · segment-based', seg:'Carrier / ISP' },
+    { name:'Antenna / Tower Space', model:'Contract · fixed term rental', seg:'Carrier / ISP' },
+  ],
+};
+
+const ORDER_STAGES = ['Quote Requested','Feasibility / Survey','Build / Install','Testing','Activated'];
+let ORDERS = [
+  { id:'ORD-8801', name:'Sok Dara — TC-Home 100Mbps', stage:0, seg:'individual' },
+  { id:'ORD-8794', name:'Bayon Logistics — SIP Trunk 30ch', stage:1, seg:'business' },
+  { id:'ORD-8779', name:'Naga Bank — IPLC Phnom Penh–Singapore', stage:2, seg:'enterprise' },
+  { id:'ORD-8766', name:'Angkor Hospital — DPLC Battambang link', stage:2, seg:'enterprise' },
+  { id:'ORD-8750', name:'Mekong Mobile — IP Transit upgrade 10G', stage:3, seg:'wholesale' },
+  { id:'ORD-8741', name:'Chenla Rural ISP — Leased Circuit E1', stage:3, seg:'wholesale' },
+  { id:'ORD-8712', name:'Golden Rice — VPBX 12 extensions', stage:4, seg:'business' },
+  { id:'ORD-8698', name:'Chan Sopheak — TC-Home + IP Phone bundle', stage:4, seg:'individual' },
+];
+
+let CONTRACTS = [
+  {
+    circuit:'IPLC-SGP-0142', type:'IPLC', account:'Naga Bank PLC', segment:'enterprise',
+    route:'Phnom Penh (TC Core POP) → Singapore (SGP PoP)',
+    capacity:'100 Mbps', utilization:61, target:99.90, current:99.94, status:'ok',
+    mttr:'4h', penalty:'5% of monthly fee credited per hour below SLA floor, capped at 30%',
+    termStart:'2022-03-01', renews:'2027-03-01', renewsInDays:226, splitConnection:true,
+    uptimeHistory:[99.92,99.95,99.91,99.96,99.93,99.97,99.94,99.90,99.95,99.96,99.93,99.94],
+    breaches:[]
+  },
+  {
+    circuit:'DPLC-BTB-0087', type:'DPLC', account:'Angkor Provincial Hospital Group', segment:'enterprise',
+    route:'Phnom Penh (TC Core POP) → Battambang Provincial Hospital',
+    capacity:'50 Mbps', utilization:74, target:99.90, current:99.62, status:'warn',
+    mttr:'4h', penalty:'5% of monthly fee credited per hour below SLA floor, capped at 30%',
+    termStart:'2023-11-18', renews:'2026-11-18', renewsInDays:123, splitConnection:false,
+    uptimeHistory:[99.91,99.88,99.93,99.85,99.79,99.90,99.81,99.76,99.70,99.64,99.58,99.62],
+    breaches:[
+      { date:'2026-06-24', duration:'1.8h', cause:'Fiber cut near Battambang provincial road works', credit:95 }
+    ]
+  },
+  {
+    circuit:'E1-PP-0311', type:'Leased Circuit E1', account:'Chenla Rural ISP', segment:'wholesale',
+    route:'Phnom Penh Central Exchange → Chenla Rural ISP POP, Kandal',
+    capacity:'2× E1 (4.096 Mbps)', utilization:88, target:99.50, current:97.80, status:'crit',
+    mttr:'8h', penalty:'8% of monthly fee credited per hour below SLA floor, capped at 40%',
+    termStart:'2024-09-05', renews:'2026-09-05', renewsInDays:49, splitConnection:false,
+    uptimeHistory:[99.60,99.55,99.48,99.30,99.10,98.90,98.70,98.40,98.10,97.95,97.85,97.80],
+    breaches:[
+      { date:'2026-07-13', duration:'6.2h', cause:'Fiber cut — flooding near NR6', credit:340 },
+      { date:'2026-05-02', duration:'2.1h', cause:'Power failure at Phnom Penh POP', credit:110 },
+      { date:'2026-03-19', duration:'3.5h', cause:'Router line card failure', credit:190 }
+    ]
+  },
+  {
+    circuit:'FIB-LH-0056', type:'Long-haul Fiber', account:'Mekong Mobile Co., Ltd.', segment:'wholesale',
+    route:'Phnom Penh → Sihanoukville (national backbone)',
+    capacity:'10 Gbps', utilization:42, target:99.95, current:99.97, status:'ok',
+    mttr:'6h', penalty:'5% of monthly fee credited per hour below SLA floor, capped at 30%',
+    termStart:'2021-01-20', renews:'2028-01-20', renewsInDays:551, splitConnection:true,
+    uptimeHistory:[99.96,99.98,99.97,99.99,99.95,99.98,99.96,99.97,99.98,99.96,99.97,99.97],
+    breaches:[]
+  },
+  {
+    circuit:'DPLC-SR-0019', type:'DPLC', account:'Angkor Provincial Hospital Group', segment:'enterprise',
+    route:'Phnom Penh (TC Core POP) → Siem Reap Provincial Hospital',
+    capacity:'30 Mbps', utilization:55, target:99.90, current:99.91, status:'ok',
+    mttr:'4h', penalty:'5% of monthly fee credited per hour below SLA floor, capped at 30%',
+    termStart:'2023-11-18', renews:'2026-11-18', renewsInDays:123, splitConnection:false,
+    uptimeHistory:[99.90,99.92,99.88,99.93,99.91,99.94,99.89,99.92,99.90,99.93,99.91,99.91],
+    breaches:[]
+  },
+  {
+    circuit:'FIB-MET-0033', type:'Metro Fiber', account:'Mekong Mobile Co., Ltd.', segment:'wholesale',
+    route:'Phnom Penh Metro Ring — BKK1 ↔ Chroy Changvar ↔ Sen Sok',
+    capacity:'20 Gbps', utilization:92, target:99.95, current:99.96, status:'ok',
+    mttr:'6h', penalty:'5% of monthly fee credited per hour below SLA floor, capped at 30%',
+    termStart:'2022-06-10', renews:'2027-06-10', renewsInDays:327, splitConnection:false,
+    uptimeHistory:[99.94,99.95,99.96,99.95,99.97,99.96,99.95,99.96,99.97,99.95,99.96,99.96],
+    breaches:[]
+  },
+];
+
+let INVOICES = [
+  { id:'INV-55021', account:'Naga Bank PLC', model:'Recurring flat', amount:4200, period:'Jul 2026', status:'paid' },
+  { id:'INV-55033', account:'Mekong Mobile Co., Ltd.', model:'Usage-based (Voice/SMS Transit)', amount:18600, period:'Jul 2026', status:'due' },
+  { id:'INV-55040', account:'Golden Rice Import Co.', model:'Recurring flat', amount:265, period:'Jul 2026', status:'overdue' },
+  { id:'INV-55052', account:'Chan Sopheak', model:'Postpaid consolidated', amount:19, period:'Jul 2026', status:'paid' },
+  { id:'INV-55061', account:'Chenla Rural ISP', model:'Recurring flat + usage', amount:5400, period:'Jul 2026', status:'due' },
+];
+
+let TICKETS = [
+  { id:'TCK-3391', account:'Chenla Rural ISP', seg:'wholesale', issue:'E1 circuit degraded — packet loss on PP segment', priority:'Critical', sla:'0h 42m', status:'breach' },
+  { id:'TCK-3388', account:'Angkor Provincial Hospital', seg:'enterprise', issue:'DPLC Battambang intermittent drop', priority:'High', sla:'3h 10m', status:'risk' },
+  { id:'TCK-3379', account:'Golden Rice Import Co.', seg:'business', issue:'TC-Biz slow speeds during peak hours', priority:'Medium', sla:'11h 20m', status:'active' },
+  { id:'TCK-3370', account:'Sok Dara', seg:'individual', issue:'TC-Home router not connecting after outage', priority:'Low', sla:'—', status:'active' },
+];
+
+/* ============ STATE / RENDER ============ */
+const requestedView = crmParams.get('view');
+const initialView = NAV.some((item) => item.id === requestedView) ? requestedView : 'overview';
+let state = { view:initialView, accountFilter:'all', contractFilter:'all' };
+
+function fmt(n){ return '$' + n.toLocaleString(); }
+
+function renderNav(){
+  document.getElementById('nav').innerHTML = NAV.map(n => `
+    <div class="nav-item ${state.view===n.id?'active':''}" data-view="${n.id}">
+      ${ICONS[n.id]} <span>${n.label}</span>
+    </div>`).join('');
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.view = el.dataset.view; render(); });
+  });
+}
+
+function setPageHeader(){
+  const n = NAV.find(x=>x.id===state.view);
+  document.getElementById('pageTitle').textContent = n.label;
+  document.getElementById('pageDesc').textContent = n.desc;
+}
+
+function render(){
+  renderNav();
+  setPageHeader();
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="view">${VIEWS[state.view]()}</div>`;
+  attachViewHandlers();
+}
+
+/* ---------- Overview ---------- */
+function viewOverview(){
+  const totalMRR = ACCOUNTS.reduce((s,a)=>s+a.mrr,0);
+  const segCounts = { individual:0, business:0, enterprise:0, wholesale:0 };
+  ACCOUNTS.forEach(a=>segCounts[a.segment]++);
+  const segColors = { individual:'#8DA0C4', business:'#33E6C8', enterprise:'#9C8CFB', wholesale:'#F2A93B' };
+  const segLabels = { individual:'Individual', business:'Business', enterprise:'Enterprise', wholesale:'Wholesale / Carrier' };
+  const maxSeg = Math.max(...Object.values(segCounts));
+  const sparkVals = [98.2,99.1,99.4,97.9,99.6,99.8,99.3];
+
+  return `
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Accounts</div>
+      <div class="kpi-value">${ACCOUNTS.length}</div>
+      <div class="kpi-delta up">↑ across 4 segments</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Monthly Recurring Revenue</div>
+      <div class="kpi-value">${fmt(totalMRR)}</div>
+      <div class="kpi-delta up">↑ 4.2% vs last month</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Active Circuits</div>
+      <div class="kpi-value">${CONTRACTS.length}</div>
+      <div class="kpi-delta warn">1 at SLA breach</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Open Assurance Tickets</div>
+      <div class="kpi-value">${TICKETS.length}</div>
+      <div class="kpi-delta warn">1 critical, SLA clock running</div>
+    </div>
+  </div>
+
+  <div class="panel-row">
+    <div class="panel">
+      <div class="panel-title">Accounts by segment</div>
+      <div class="panel-caption">Distinct data &amp; billing models per segment</div>
+      ${Object.keys(segCounts).map(k=>`
+        <div class="bar-row">
+          <div class="bar-label">${segLabels[k]}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(segCounts[k]/maxSeg)*100}%; background:${segColors[k]}"></div></div>
+          <div class="bar-value">${segCounts[k]}</div>
+        </div>`).join('')}
+    </div>
+    <div class="panel">
+      <div class="panel-title">Network health — 7 day avg uptime</div>
+      <div class="panel-caption">Aggregated across leased circuit portfolio</div>
+      <div class="spark">
+        ${sparkVals.map(v=>`<div class="spark-bar" style="height:${(v-95)/5*100}%"></div>`).join('')}
+      </div>
+      <div class="spark-labels">${['M','T','W','T','F','S','S'].map(d=>`<span>${d}</span>`).join('')}</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Attention needed</div>
+    <div class="panel-caption">Items surfaced from tickets and contract SLA status</div>
+    <table>
+      <thead><tr><th>Type</th><th>Reference</th><th>Account</th><th>Detail</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">TCK-3391</td><td>Ticket</td><td>Chenla Rural ISP</td><td>E1 circuit degraded — SLA breached</td><td><span class="status-dot breach">Breach</span></td></tr>
+        <tr><td class="mono">E1-PP-0311</td><td>Contract</td><td>Chenla Rural ISP</td><td>Uptime 97.80% vs 99.50% target</td><td><span class="status-dot breach">Critical</span></td></tr>
+        <tr><td class="mono">INV-55040</td><td>Billing</td><td>Golden Rice Import Co.</td><td>Invoice overdue — ${fmt(265)}</td><td><span class="status-dot overdue">Overdue</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  `;
+}
+
+/* ---------- Accounts ---------- */
+function viewAccounts(){
+  const segs = [['all','All'],['individual','Individual'],['business','Business'],['enterprise','Enterprise'],['wholesale','Wholesale / Carrier']];
+  const rows = ACCOUNTS.filter(a => state.accountFilter==='all' || a.segment===state.accountFilter);
+  return `
+  <div class="section-head">
+    <div class="filter-chips">
+      ${segs.map(([k,l])=>`<div class="chip ${state.accountFilter===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Account</th><th>Segment</th><th>Products</th><th>Connection</th><th>MRR</th><th>Status</th></tr></thead>
+      <tbody>
+        ${rows.map(a=>`
+          <tr data-account="${a.id}">
+            <td>
+              <div class="cell-name">${a.name}</div>
+              <div class="cell-sub mono">${a.id} · since ${a.since}</div>
+            </td>
+            <td><span class="tag ${a.segment}">${a.segment.charAt(0).toUpperCase()+a.segment.slice(1)}</span></td>
+            <td>${a.products.join(', ')}</td>
+            <td><span class="signal-bars">${[1,2,3,4].map(i=>`<span class="${i<=a.signal?'on':''}"></span>`).join('')}</span></td>
+            <td class="mono">${fmt(a.mrr)}/mo</td>
+            <td><span class="status-dot ${a.status}">${a.status.charAt(0).toUpperCase()+a.status.slice(1)}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ---------- Catalog ---------- */
+function viewCatalog(){
+  return Object.keys(CATALOG).map(group => `
+    <div class="catalog-group">
+      <div class="catalog-group-head">
+        <div class="catalog-group-title">${group}</div>
+        <div class="catalog-group-count">${CATALOG[group].length} products</div>
+      </div>
+      <div class="catalog-grid">
+        ${CATALOG[group].map(p=>`
+          <div class="product-card">
+            <div class="product-card-top">
+              <div class="product-name">${p.name}</div>
+            </div>
+            <div class="cell-sub">${p.seg}</div>
+            <div class="product-model">${p.model}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ---------- Orders ---------- */
+function viewOrders(){
+  return `<div class="pipeline">
+    ${ORDER_STAGES.map((stage, idx) => `
+      <div class="pipeline-col">
+        <div class="pipeline-col-head">
+          <div class="pipeline-col-title">${stage}</div>
+          <div class="pipeline-col-count">${ORDERS.filter(o=>o.stage===idx).length}</div>
+        </div>
+        ${ORDERS.filter(o=>o.stage===idx).map(o=>`
+          <div class="order-card">
+            <div class="order-card-id">${o.id}</div>
+            <div class="order-card-name">${o.name}</div>
+            <div class="order-card-meta"><span class="tag ${o.seg}">${o.seg.charAt(0).toUpperCase()+o.seg.slice(1)}</span></div>
+          </div>`).join('') || '<div class="empty-note">No orders in this stage</div>'}
+      </div>`).join('')}
+  </div>`;
+}
+
+/* ---------- Contracts ---------- */
+function viewContracts(){
+  const types = ['all', ...Array.from(new Set(CONTRACTS.map(c=>c.type)))];
+  const filtered = CONTRACTS.filter(c => state.contractFilter==='all' || c.type===state.contractFilter);
+  const breachCount = CONTRACTS.filter(c=>c.status==='crit').length;
+  const riskCount = CONTRACTS.filter(c=>c.status==='warn').length;
+  const capRiskCount = CONTRACTS.filter(c=>c.utilization>=85).length;
+  const renewSoonCount = CONTRACTS.filter(c=>c.renewsInDays<=60).length;
+
+  return `
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:18px;">
+    <div class="kpi-card"><div class="kpi-label">SLA Breaches</div><div class="kpi-value">${breachCount}</div><div class="kpi-delta warn">Credits accruing</div></div>
+    <div class="kpi-card"><div class="kpi-label">At Risk</div><div class="kpi-value">${riskCount}</div><div class="kpi-delta warn">Trending below target</div></div>
+    <div class="kpi-card"><div class="kpi-label">Capacity Risk</div><div class="kpi-value">${capRiskCount}</div><div class="kpi-delta warn">Utilization ≥ 85%</div></div>
+    <div class="kpi-card"><div class="kpi-label">Renewals ≤ 60 days</div><div class="kpi-value">${renewSoonCount}</div><div class="kpi-delta warn">Needs outreach</div></div>
+  </div>
+
+  <div class="section-head">
+    <div class="filter-chips">
+      ${types.map(t=>`<div class="chip ${state.contractFilter===t?'active':''}" data-cfilter="${t}">${t==='all'?'All types':t}</div>`).join('')}
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Circuit ID</th><th>Type</th><th>Account</th><th>Route</th><th>Capacity / Utilization</th><th>SLA</th><th>Renewal</th></tr></thead>
+      <tbody>
+        ${filtered.map(c=>`
+          <tr data-circuit="${c.circuit}">
+            <td class="mono">${c.circuit}</td>
+            <td>${c.type}${c.splitConnection ? '<div class="cell-sub">split connection</div>' : ''}</td>
+            <td>${c.account}</td>
+            <td class="cell-sub" style="max-width:230px; line-height:1.4;">${c.route}</td>
+            <td>
+              <div class="cell-sub mono" style="margin-bottom:5px;">${c.capacity}</div>
+              <div class="bar-track" style="width:110px;"><div class="bar-fill" style="width:${c.utilization}%; background:${c.utilization>=85?'#F2A93B':'#33E6C8'}"></div></div>
+              ${c.utilization>=85?'<div class="cell-sub" style="color:#F2A93B; margin-top:3px;">Capacity risk · '+c.utilization+'%</div>':`<div class="cell-sub" style="margin-top:3px;">${c.utilization}% utilized</div>`}
+            </td>
+            <td>
+              <span class="sla-pill ${c.status}">${c.status==='ok'?'Healthy':c.status==='warn'?'At Risk':'Breach'}</span>
+              <div class="cell-sub mono" style="margin-top:5px;">${c.current.toFixed(2)}% / ${c.target.toFixed(2)}%</div>
+            </td>
+            <td>
+              <div class="mono cell-sub">${c.renews}</div>
+              ${c.renewsInDays<=60?'<div class="cell-sub" style="color:#F2A93B; margin-top:2px;">Renew soon · '+c.renewsInDays+'d</div>':`<div class="cell-sub" style="margin-top:2px;">${c.renewsInDays}d remaining</div>`}
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ---------- Billing ---------- */
+function viewBilling(){
+  return `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Invoice</th><th>Account</th><th>Billing Model</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        ${INVOICES.map(i=>`
+          <tr>
+            <td class="mono">${i.id}</td>
+            <td>${i.account}</td>
+            <td>${i.model}</td>
+            <td>${i.period}</td>
+            <td class="mono">${fmt(i.amount)}</td>
+            <td><span class="status-dot ${i.status}">${i.status.charAt(0).toUpperCase()+i.status.slice(1)}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ---------- Tickets ---------- */
+function viewTickets(){
+  return `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ticket</th><th>Account</th><th>Segment</th><th>Issue</th><th>Priority</th><th>SLA Remaining</th><th>Status</th></tr></thead>
+      <tbody>
+        ${TICKETS.map(t=>`
+          <tr>
+            <td class="mono">${t.id}</td>
+            <td>${t.account}</td>
+            <td><span class="tag ${t.seg}">${t.seg.charAt(0).toUpperCase()+t.seg.slice(1)}</span></td>
+            <td>${t.issue}</td>
+            <td>${t.priority}</td>
+            <td class="mono">${t.sla}</td>
+            <td><span class="status-dot ${t.status}">${t.status.charAt(0).toUpperCase()+t.status.slice(1)}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+/* ---------- Wholesale Portal ---------- */
+function viewWholesale(){
+  return `
+  <div class="panel-row">
+    <div class="panel">
+      <div class="panel-title">Partner view — Mekong Mobile Co., Ltd.</div>
+      <div class="panel-caption">What an operator/ISP partner sees when they log into the self-service portal</div>
+      <div class="bar-row"><div class="bar-label">Voice Transit (min)</div><div class="bar-track"><div class="bar-fill" style="width:82%; background:#33E6C8"></div></div><div class="bar-value">820k</div></div>
+      <div class="bar-row"><div class="bar-label">SMS Transit (msgs)</div><div class="bar-track"><div class="bar-fill" style="width:64%; background:#33E6C8"></div></div><div class="bar-value">1.2M</div></div>
+      <div class="bar-row"><div class="bar-label">IP Transit (Gbps)</div><div class="bar-track"><div class="bar-fill" style="width:55%; background:#9C8CFB"></div></div><div class="bar-value">5.5</div></div>
+      <div class="bar-row"><div class="bar-label">DIX Peering (Gbps)</div><div class="bar-track"><div class="bar-fill" style="width:38%; background:#9C8CFB"></div></div><div class="bar-value">3.8</div></div>
+      <div class="btn-row">
+        <div class="btn primary">Request new circuit quote</div>
+        <div class="btn">Download settlement report</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Open items for this partner</div>
+      <div class="panel-caption">Auto-routed with SLA priority</div>
+      <table>
+        <thead><tr><th>Ref</th><th>Type</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">Q-2291</td><td>Quote</td><td>10G IP Transit upgrade — feasibility pending</td></tr>
+          <tr><td class="mono">TCK-3391</td><td>Fault</td><td>Circuit degraded — SLA clock active</td></tr>
+          <tr><td class="mono">INV-55033</td><td>Settlement</td><td>${fmt(18600)} due — Jul 2026 usage</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Request a leased circuit quote</div>
+    <div class="panel-caption">Route-based pricing — feasibility checked against fiber coverage before quoting</div>
+    <div class="btn-row" style="margin-top:0;">
+      <div class="btn">Metro Fiber</div>
+      <div class="btn">Long-haul Fiber</div>
+      <div class="btn">IPLC</div>
+      <div class="btn">DPLC</div>
+      <div class="btn">Leased Circuit E1</div>
+    </div>
+  </div>`;
+}
+
+const VIEWS = {
+  overview: viewOverview,
+  accounts: viewAccounts,
+  catalog: viewCatalog,
+  orders: viewOrders,
+  contracts: viewContracts,
+  billing: viewBilling,
+  tickets: viewTickets,
+  wholesale: viewWholesale,
+};
+
+function segmentForAccountType(accountType){
+  const value = (accountType || '').toLowerCase();
+  if(value.includes('carrier') || value.includes('wholesale') || value.includes('isp')) return 'wholesale';
+  if(value.includes('enterprise') || value.includes('government')) return 'enterprise';
+  if(value.includes('residential') || value.includes('individual')) return 'individual';
+  return 'business';
+}
+
+function accountStatus(customer){
+  const status = (customer.status || '').toLowerCase();
+  const risk = (customer.risk || '').toLowerCase();
+  if(status.includes('suspend')) return 'suspended';
+  if(status.includes('risk') || risk === 'high' || risk === 'medium') return 'risk';
+  return 'active';
+}
+
+function productGroup(product){
+  const value = `${product.name} ${product.commercial_model} ${product.pricing_model}`.toLowerCase();
+  if(/phone|vpbx|sip|voice|sms/.test(value)) return 'Voice Services';
+  if(/site|duct|tower/.test(value)) return 'Infrastructure Rental';
+  if(product.pricing_model === 'Custom' || /iplc|dplc|leased|fiber/.test(value)) return 'Leased Circuit & Fiber';
+  return 'Internet Services';
+}
+
+function formatApiDate(value){
+  if(!value) return '—';
+  return new Intl.DateTimeFormat('en-US', { month:'short', year:'numeric' }).format(new Date(`${value}T00:00:00`));
+}
+
+function daysUntil(value){
+  if(!value) return 0;
+  return Math.max(0, Math.ceil((new Date(`${value}T00:00:00`).getTime() - Date.now()) / 86400000));
+}
+
+function remainingSla(value){
+  if(!value) return '—';
+  const minutes = Math.ceil((new Date(value).getTime() - Date.now()) / 60000);
+  if(minutes <= 0) return 'Breached';
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
+
+function orderStageForQuote(quote){
+  if(quote.status === 'Approved') return 4;
+  if(quote.feasibility_status === 'Approved') return 2;
+  if(quote.feasibility_status === 'Pending') return 1;
+  return 0;
+}
+
+function orderStageForCircuit(circuit){
+  const stages = { Feasibility:1, Survey:1, Build:2, Testing:3, Active:4 };
+  return stages[circuit.provisioning_stage] ?? 0;
+}
+
+function contractHealth(contract){
+  const status = (contract.status || '').toLowerCase();
+  if(status.includes('suspend') || status.includes('reject')) return 'crit';
+  if(status.includes('draft') || status.includes('feasibility') || status.includes('expir')) return 'warn';
+  return 'ok';
+}
+
+async function requestApi(path){
+  const response = await fetch(`${API_BASE}${path}`);
+  if(!response.ok) throw new Error(`Request failed: ${path}`);
+  return response.json();
+}
+
+async function loadBackendData(){
+  try {
+    const [customers, products, quotes, contracts, circuits, invoices] = await Promise.all([
+      requestApi('/api/customers'),
+      requestApi('/api/catalog/products'),
+      requestApi('/api/quotes'),
+      requestApi('/api/contracts'),
+      requestApi('/api/circuits'),
+      requestApi('/api/invoices'),
+    ]);
+
+    const accountById = new Map(customers.map((customer) => [customer.id, customer]));
+    ACCOUNTS = customers.map((customer) => {
+      const portRatio = customer.pop.ports_total ? customer.pop.ports_used / customer.pop.ports_total : 0;
+      return {
+        id: `ACC-${String(customer.id).padStart(5, '0')}`,
+        apiId: customer.id,
+        name: customer.name,
+        segment: segmentForAccountType(customer.account_type),
+        products: [customer.plan],
+        mrr: Number(customer.monthly_value),
+        status: accountStatus(customer),
+        since: customer.tenure,
+        contact: customer.site.name,
+        signal: portRatio >= .9 ? 1 : portRatio >= .75 ? 2 : portRatio >= .5 ? 3 : 4,
+      };
+    });
+
+    TICKETS = customers.flatMap((customer) => customer.tickets.map((ticket) => ({
+      id: ticket.id,
+      customerId: customer.id,
+      contractId: ticket.contract_id,
+      circuitId: ticket.circuit_id,
+      account: customer.name,
+      seg: segmentForAccountType(customer.account_type),
+      issue: ticket.text,
+      priority: ticket.priority || 'Normal',
+      sla: remainingSla(ticket.sla_due_at),
+      status: ticket.sla_due_at && new Date(ticket.sla_due_at) < new Date() ? 'breach' : (ticket.priority === 'Critical' || ticket.priority === 'High' ? 'risk' : 'active'),
+      openedOn: ticket.opened_on,
+    })));
+
+    CATALOG = products.reduce((groups, product) => {
+      const group = productGroup(product);
+      if(!groups[group]) groups[group] = [];
+      groups[group].push({
+        name: product.name,
+        model: `${product.commercial_model} · ${product.pricing_model === 'Fixed' ? 'fixed monthly' : 'custom quote'}`,
+        seg: product.segment,
+      });
+      return groups;
+    }, {});
+
+    ORDERS = [
+      ...quotes.map((quote) => ({
+        id: quote.quote_number,
+        name: `${quote.account.name} — ${quote.product.name}`,
+        stage: orderStageForQuote(quote),
+        seg: segmentForAccountType(quote.account.account_type),
+      })),
+      ...circuits.map((circuit) => ({
+        id: circuit.circuit_id,
+        name: `${circuit.contract.account_name} — ${circuit.bandwidth}`,
+        stage: orderStageForCircuit(circuit),
+        seg: segmentForAccountType(circuit.contract.account_segment),
+      })),
+    ];
+
+    INVOICES = invoices.map((invoice) => ({
+      id: invoice.id,
+      account: accountById.get(invoice.customer_id)?.name || 'Unknown account',
+      model: accountById.get(invoice.customer_id)?.billing_model || 'Recurring',
+      amount: Number(invoice.amount),
+      period: formatApiDate(invoice.issued),
+      status: invoice.status,
+    }));
+
+    CONTRACTS = contracts.map((contract) => {
+      const circuit = circuits.find((item) => item.contract_id === contract.id);
+      const linkedTickets = TICKETS.filter((ticket) => ticket.contractId === contract.id || (circuit && ticket.circuitId === circuit.id));
+      const utilization = circuit?.asset ? Math.round((circuit.asset.capacity_used / circuit.asset.capacity_total) * 100) : 0;
+      return {
+        circuit: circuit?.circuit_id || contract.contract_number,
+        type: contract.product,
+        account: contract.account_name,
+        segment: segmentForAccountType(contract.account_segment),
+        route: circuit ? `${circuit.endpoint_a} → ${circuit.endpoint_b}` : 'Circuit assignment pending',
+        capacity: circuit?.bandwidth || 'Not assigned',
+        utilization,
+        target: Number(contract.sla_availability),
+        current: Number(contract.sla_availability),
+        status: contractHealth(contract),
+        mttr: `${contract.sla_mttr_hours}h`,
+        penalty: `Maximum service credit: ${Number(contract.service_credit_rate)}%`,
+        termStart: contract.start_date,
+        renews: contract.end_date,
+        renewsInDays: daysUntil(contract.end_date),
+        splitConnection: /dual|split|diverse/i.test(contract.route_diversity),
+        uptimeHistory: [],
+        breaches: linkedTickets.map((ticket) => ({ date:ticket.openedOn, duration:ticket.sla, cause:ticket.issue, credit:0 })),
+      };
+    });
+
+    render();
+  } catch(error) {
+    console.error('CRM backend data could not be loaded. Showing sample data instead.', error);
+  }
+}
+
+/* ============ INTERACTIONS ============ */
+function attachViewHandlers(){
+  document.querySelectorAll('.chip[data-filter]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.accountFilter = el.dataset.filter; render(); });
+  });
+  document.querySelectorAll('.chip[data-cfilter]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.contractFilter = el.dataset.cfilter; render(); });
+  });
+  document.querySelectorAll('tr[data-account]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const acc = ACCOUNTS.find(a=>a.id===row.dataset.account);
+      openDrawer(acc);
+    });
+  });
+  document.querySelectorAll('tr[data-circuit]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const c = CONTRACTS.find(x=>x.circuit===row.dataset.circuit);
+      openContractDrawer(c);
+    });
+  });
+}
+
+function openDrawer(acc){
+  document.getElementById('drawerBody').classList.remove('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">${acc.name}</div>
+    <div class="drawer-sub mono">${acc.id}</div>
+
+    <div class="drawer-field">
+      <div class="drawer-field-label">Segment</div>
+      <div class="drawer-field-value"><span class="tag ${acc.segment}">${acc.segment.charAt(0).toUpperCase()+acc.segment.slice(1)}</span></div>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-field-label">Products</div>
+      <div class="drawer-field-value">${acc.products.join(', ')}</div>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-field-label">Monthly Recurring Revenue</div>
+      <div class="drawer-field-value mono">${fmt(acc.mrr)}</div>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-field-label">Customer Since</div>
+      <div class="drawer-field-value">${acc.since}</div>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-field-label">Primary Contact</div>
+      <div class="drawer-field-value">${acc.contact}</div>
+    </div>
+    <div class="drawer-field">
+      <div class="drawer-field-label">Status</div>
+      <div class="drawer-field-value"><span class="status-dot ${acc.status}">${acc.status.charAt(0).toUpperCase()+acc.status.slice(1)}</span></div>
+    </div>
+
+    <div class="drawer-divider"></div>
+    <div class="btn-row" style="margin-top:0;">
+      <div class="btn primary">Open in CRM record</div>
+      <div class="btn">Raise ticket</div>
+    </div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+}
+function openContractDrawer(c, tab){
+  tab = tab || 'contract';
+  const tabs = [['contract','Contract'],['uptime','Uptime History'],['breach','Breach Log ('+c.breaches.length+')']];
+  let bodyHtml = '';
+
+  if(tab==='contract'){
+    bodyHtml = `
+      <div class="drawer-field"><div class="drawer-field-label">Account</div><div class="drawer-field-value">${c.account}</div></div>
+      <div class="drawer-field"><div class="drawer-field-label">Route</div><div class="drawer-field-value">${c.route}</div></div>
+      <div class="drawer-field"><div class="drawer-field-label">Capacity</div><div class="drawer-field-value mono">${c.capacity} · ${c.utilization}% utilized${c.utilization>=85?' <span style="color:#F2A93B;">(capacity risk)</span>':''}</div></div>
+      <div class="drawer-field"><div class="drawer-field-label">Route Diversity</div><div class="drawer-field-value">${c.splitConnection?'Split Connection active':'Single path — no diversity'}</div></div>
+      <div class="drawer-divider"></div>
+      <div class="drawer-field"><div class="drawer-field-label">SLA Target / Current</div><div class="drawer-field-value mono">${c.target.toFixed(2)}% target · ${c.current.toFixed(2)}% current</div></div>
+      <div class="drawer-field"><div class="drawer-field-label">MTTR Commitment</div><div class="drawer-field-value">${c.mttr}</div></div>
+      <div class="drawer-field"><div class="drawer-field-label">Penalty Terms</div><div class="drawer-field-value">${c.penalty}</div></div>
+      <div class="drawer-divider"></div>
+      <div class="drawer-field"><div class="drawer-field-label">Contract Term</div><div class="drawer-field-value mono">${c.termStart} → ${c.renews}</div></div>
+      <div class="drawer-field"><div class="drawer-field-label">Renewal</div><div class="drawer-field-value">${c.renewsInDays} days remaining${c.renewsInDays<=60?' — flagged for renewal outreach':''}</div></div>
+    `;
+  } else if(tab==='uptime'){
+    bodyHtml = c.uptimeHistory.length ? `
+      <div class="panel-caption" style="margin-bottom:10px;">Monthly uptime vs ${c.target.toFixed(2)}% target</div>
+      <div class="spark">
+        ${c.uptimeHistory.map(v=>{
+          const color = v>=c.target ? '#4FDD8F' : (v>=c.target-0.5 ? '#F2A93B' : '#FF6262');
+          const height = Math.max(8, (v-96)/4*100);
+          return `<div class="spark-bar" style="height:${height}%; background:${color}"></div>`;
+        }).join('')}
+      </div>
+      <div class="spark-labels">${['J','F','M','A','M','J','J','A','S','O','N','D'].map(m=>`<span>${m}</span>`).join('')}</div>
+      <div class="drawer-divider"></div>
+      <div class="drawer-field"><div class="drawer-field-label">12-month average</div><div class="drawer-field-value mono">${(c.uptimeHistory.reduce((a,b)=>a+b,0)/12).toFixed(2)}%</div></div>
+      <div class="drawer-field"><div class="drawer-field-label">Lowest month</div><div class="drawer-field-value mono">${Math.min(...c.uptimeHistory).toFixed(2)}%</div></div>
+    ` : '<div class="empty-note">Uptime monitoring data is not connected for this circuit yet.</div>';
+  } else {
+    bodyHtml = c.breaches.length ? c.breaches.map(b=>`
+        <div class="order-card" style="margin-bottom:10px;">
+          <div class="order-card-meta" style="margin-bottom:7px;">
+            <span class="mono cell-sub">${b.date}</span>
+            <span class="sla-pill crit">${b.duration}</span>
+          </div>
+          <div style="font-size:12.5px; margin-bottom:7px;">${b.cause}</div>
+          <div class="cell-sub">Credit issued: <span class="mono">$${b.credit}</span></div>
+        </div>`).join('')
+      : '<div class="empty-note">No SLA breaches recorded on this circuit.</div>';
+  }
+
+  document.getElementById('drawerBody').classList.add('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">${c.circuit}</div>
+    <div class="drawer-sub">${c.type} · ${c.account}</div>
+
+    <div class="tab-row">
+      ${tabs.map(([k,l])=>`<div class="tab-item ${tab===k?'active':''}" data-ctab="${k}">${l}</div>`).join('')}
+    </div>
+    <div class="tab-body">${bodyHtml}</div>
+
+    <div class="drawer-divider"></div>
+    <div class="btn-row" style="margin-top:0;">
+      <div class="btn primary">Initiate renewal</div>
+      <div class="btn">Escalate to NOC</div>
+    </div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.querySelectorAll('.tab-item[data-ctab]').forEach(el=>{
+    el.addEventListener('click', ()=> openContractDrawer(c, el.dataset.ctab));
+  });
+}
+
+function closeDrawer(){ document.getElementById('drawerOverlay').classList.remove('open'); }
+document.getElementById('drawerOverlay').addEventListener('click', (e)=>{
+  if(e.target.id==='drawerOverlay') closeDrawer();
+});
+
+render();
+loadBackendData();
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# JavaScript dependencies and builds
+node_modules/
+dist/
+
+# Python environments and bytecode
+backend/.venv/
+**/__pycache__/
+*.py[cod]
+
+# Local environment configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Local tools and generated analysis output
+.claude/
+.scannerwork/
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db

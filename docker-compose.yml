@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fiberline}
+      POSTGRES_USER: ${POSTGRES_USER:-fiberline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fiberline}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qgis-server:
+    image: qgis/qgis-server:latest
+    environment:
+      QGIS_PROJECT_FILE: /data/project.qgs
+      QGIS_SERVER_LOG_LEVEL: 2
+    volumes:
+      - ./public/gis:/data:ro
+    ports:
+      - "8081:80"
+
+volumes:
+  postgres_data:
