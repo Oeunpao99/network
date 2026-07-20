@@ -60,6 +60,16 @@ class TicketRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TicketCreate(BaseModel):
+    customer_id: int
+    text: str = Field(min_length=1, max_length=300)
+    ticket_class: str = Field(default="Retail", min_length=1, max_length=32)
+    priority: str = Field(default="Normal", min_length=1, max_length=32)
+    contract_id: int | None = None
+    circuit_id: int | None = None
+    sla_due_at: datetime | None = None
+
+
 class CustomerRead(CustomerCreate):
     id: int
     site: CustomerSiteRead

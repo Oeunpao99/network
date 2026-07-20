@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import select
 
@@ -104,124 +104,235 @@ CIRCUITS = [
     {"circuit_id": "CIR-MEKONG-01", "contract": "CON-003", "asset": "AST-004", "pop": "POP-TLK", "endpoint_a": "Mekong Logistics HQ", "endpoint_b": "Mekong Warehouse", "bandwidth": "50 Mbps", "provisioning_stage": "Feasibility", "status": "Planned"},
 ]
 
+POPS.extend([
+    {"code": "POP-SR", "name": "Siem Reap Exchange", "latitude": 13.3633, "longitude": 103.8564, "ports_total": 72, "ports_used": 46, "switch_id": "SW-CORE-08"},
+    {"code": "POP-SHV", "name": "Sihanoukville Gateway", "latitude": 10.6278, "longitude": 103.5228, "ports_total": 96, "ports_used": 82, "switch_id": "SW-CORE-11"},
+    {"code": "POP-KDL", "name": "Kandal Access POP", "latitude": 11.4828, "longitude": 104.9524, "ports_total": 48, "ports_used": 18, "switch_id": "SW-EDGE-12"},
+])
+
+SITES.extend([
+    {"code": "SITE-09", "name": "Phnom Penh Digital Plaza", "latitude": 11.5663, "longitude": 104.9232},
+    {"code": "SITE-10", "name": "Kampong Cham Provincial Hospital", "latitude": 12.0017, "longitude": 105.4444},
+    {"code": "SITE-11", "name": "MekongNet Carrier NOC", "latitude": 11.5574, "longitude": 104.9299},
+    {"code": "SITE-12", "name": "Sihanoukville Port Authority", "latitude": 10.6252, "longitude": 103.5148},
+    {"code": "SITE-13", "name": "Lotus Residence", "latitude": 11.5856, "longitude": 104.8867},
+    {"code": "SITE-14", "name": "Angkor University", "latitude": 13.3612, "longitude": 103.8645},
+    {"code": "SITE-15", "name": "Khmer Retail Group HQ", "latitude": 11.5704, "longitude": 104.9178},
+    {"code": "SITE-16", "name": "Takeo Provincial Administration", "latitude": 10.9908, "longitude": 104.7841},
+])
+
+CUSTOMERS.extend([
+    {"name": "Phnom Penh Digital Co.", "site": "SITE-09", "pop": "POP-WPH", "plan": "TC-Biz Fiber 500", "account_type": "SME", "verification_status": "KYB Verified", "billing_model": "Recurring", "status": "Active", "risk": "Low", "monthly_value": 120, "tenure": "2.1 yrs", "port": "GE0/0/52", "reasons": []},
+    {"name": "Kampong Cham Provincial Hospital", "site": "SITE-10", "pop": "POP-KDL", "plan": "DPLC", "account_type": "Enterprise", "verification_status": "KYB Verified", "billing_model": "Recurring", "status": "Onboarding", "risk": "Medium", "monthly_value": 2900, "tenure": "New", "port": "GE0/12/04", "reasons": ["Route survey pending", "Dual-path design under review"]},
+    {"name": "MekongNet Carrier Services", "site": "SITE-11", "pop": "POP-BKK", "plan": "IP Transit", "account_type": "Carrier", "verification_status": "KYB Verified", "billing_model": "Usage", "status": "Active", "risk": "Medium", "monthly_value": 8600, "tenure": "5.4 yrs", "port": "OTN-1/0/29", "reasons": ["Transit peak utilization above 80%"]},
+    {"name": "Sihanoukville Port Authority", "site": "SITE-12", "pop": "POP-SHV", "plan": "Fiber Route Lease", "account_type": "Government", "verification_status": "KYB Verified", "billing_model": "Recurring", "status": "Active", "risk": "Low", "monthly_value": 4100, "tenure": "1.8 yrs", "port": "GE0/11/08", "reasons": []},
+    {"name": "Lotus Residence", "site": "SITE-13", "pop": "POP-TLK", "plan": "TC-Home Fiber 300", "account_type": "Residential", "verification_status": "KYC Verified", "billing_model": "Recurring", "status": "Active", "risk": "Low", "monthly_value": 45, "tenure": "0.7 yrs", "port": "GE0/1/44", "reasons": []},
+    {"name": "Angkor University", "site": "SITE-14", "pop": "POP-SR", "plan": "DPLC", "account_type": "Enterprise", "verification_status": "KYB Verified", "billing_model": "Recurring", "status": "Active", "risk": "Low", "monthly_value": 3600, "tenure": "3.6 yrs", "port": "GE0/8/12", "reasons": []},
+    {"name": "Khmer Retail Group", "site": "SITE-15", "pop": "POP-WPH", "plan": "SIP Trunk", "account_type": "SME", "verification_status": "KYB Verified", "billing_model": "Consolidated Postpaid", "status": "At Risk", "risk": "High", "monthly_value": 980, "tenure": "2.8 yrs", "port": "GE0/0/56", "reasons": ["Two open voice quality incidents", "Invoice dispute awaiting review"]},
+    {"name": "Takeo Provincial Administration", "site": "SITE-16", "pop": "POP-KDL", "plan": "TC-Enterprise", "account_type": "Government", "verification_status": "KYB Verified", "billing_model": "Recurring", "status": "Onboarding", "risk": "Medium", "monthly_value": 2250, "tenure": "New", "port": "GE0/12/06", "reasons": ["Installation scheduled for next week"]},
+])
+
+ASSETS.extend([
+    {"code": "AST-005", "name": "Siem Reap Fiber Ring", "asset_type": "Fiber Route", "location_name": "Siem Reap city ring", "latitude": 13.3651, "longitude": 103.8534, "capacity_total": 96, "capacity_used": 54, "capacity_unit": "fiber cores", "status": "Active"},
+    {"code": "AST-006", "name": "Sihanoukville Port Cable Duct", "asset_type": "Cable Duct", "location_name": "Port access road", "latitude": 10.6262, "longitude": 103.5186, "capacity_total": 36, "capacity_used": 30, "capacity_unit": "duct slots", "status": "Reserved"},
+    {"code": "AST-007", "name": "Kandal Microwave Tower", "asset_type": "Tower Space", "location_name": "Ta Khmau", "latitude": 11.4844, "longitude": 104.9488, "capacity_total": 8, "capacity_used": 5, "capacity_unit": "antenna slots", "status": "Active"},
+    {"code": "AST-008", "name": "Wat Phnom Voice Core Rack", "asset_type": "Equipment Site", "location_name": "Wat Phnom Exchange", "latitude": 11.5925, "longitude": 104.9282, "capacity_total": 42, "capacity_used": 38, "capacity_unit": "rack units", "status": "Maintenance"},
+])
+
+PRODUCTS.extend([
+    {"code": "PRD-HOME-35", "name": "TC-Home Fiber 35", "segment": "Residential", "commercial_model": "Subscription", "pricing_model": "Fixed", "base_monthly_price": 15},
+    {"code": "PRD-HOME-300", "name": "TC-Home Fiber 300", "segment": "Residential", "commercial_model": "Subscription", "pricing_model": "Fixed", "base_monthly_price": 45},
+    {"code": "PRD-IP-PHONE", "name": "IP Phone", "segment": "SME", "commercial_model": "Subscription", "pricing_model": "Fixed", "base_monthly_price": 12},
+    {"code": "PRD-VOICE-TRANSIT", "name": "Voice Transit", "segment": "Carrier", "commercial_model": "Wholesale", "pricing_model": "Custom", "base_monthly_price": None},
+    {"code": "PRD-SMS-TRANSIT", "name": "SMS Transit", "segment": "Carrier", "commercial_model": "Wholesale", "pricing_model": "Custom", "base_monthly_price": None},
+    {"code": "PRD-DIX", "name": "DIX Peering", "segment": "Carrier", "commercial_model": "Wholesale", "pricing_model": "Custom", "base_monthly_price": None},
+    {"code": "PRD-E1", "name": "Leased Circuit E1", "segment": "Carrier", "commercial_model": "Contract", "pricing_model": "Custom", "base_monthly_price": None},
+    {"code": "PRD-TOWER", "name": "Antenna and Tower Space", "segment": "Carrier", "commercial_model": "Contract", "pricing_model": "Custom", "base_monthly_price": None},
+    {"code": "PRD-DUCT", "name": "Cable Duct Rental", "segment": "Carrier", "commercial_model": "Contract", "pricing_model": "Custom", "base_monthly_price": None},
+])
+
+CONTRACTS.extend([
+    {"contract_number": "CON-004", "account_name": "Angkor University", "account_segment": "Enterprise", "product": "DPLC", "status": "Active", "start_date": "2023-09-01", "end_date": "2027-08-31", "monthly_value": 3600, "sla_availability": 99.90, "sla_mttr_hours": 4, "msa_number": "MSA-ANG-2023-09", "service_schedule_number": "SS-023", "route_diversity": "Dual route", "service_credit_rate": 10},
+    {"contract_number": "CON-005", "account_name": "MekongNet Carrier Services", "account_segment": "Carrier", "product": "IP Transit", "status": "Active", "start_date": "2022-07-01", "end_date": "2026-09-30", "monthly_value": 8600, "sla_availability": 99.95, "sla_mttr_hours": 2, "msa_number": "MSA-MNK-2022-07", "service_schedule_number": "SS-031", "route_diversity": "Dual route", "service_credit_rate": 15},
+    {"contract_number": "CON-006", "account_name": "Sihanoukville Port Authority", "account_segment": "Government", "product": "Fiber Route Lease", "status": "Active", "start_date": "2025-01-01", "end_date": "2028-12-31", "monthly_value": 4100, "sla_availability": 99.90, "sla_mttr_hours": 6, "msa_number": "MSA-SHV-2025-01", "service_schedule_number": "SS-037", "route_diversity": "Standard", "service_credit_rate": 8},
+    {"contract_number": "CON-007", "account_name": "Kampong Cham Provincial Hospital", "account_segment": "Enterprise", "product": "DPLC", "status": "Feasibility", "start_date": "2026-08-01", "end_date": "2029-07-31", "monthly_value": 2900, "sla_availability": 99.90, "sla_mttr_hours": 4, "msa_number": "MSA-KCH-2026-01", "service_schedule_number": "SS-042", "route_diversity": "Pending survey", "service_credit_rate": 10},
+    {"contract_number": "CON-008", "account_name": "Khmer Retail Group", "account_segment": "SME", "product": "SIP Trunk", "status": "Expiring", "start_date": "2024-01-01", "end_date": "2026-08-15", "monthly_value": 980, "sla_availability": 99.50, "sla_mttr_hours": 8, "msa_number": "MSA-KRG-2024-01", "service_schedule_number": "SS-048", "route_diversity": "Standard", "service_credit_rate": 5},
+])
+
+CIRCUITS.extend([
+    {"circuit_id": "CIR-ANGKOR-UNI-01", "contract": "CON-004", "asset": "AST-005", "pop": "POP-SR", "endpoint_a": "Angkor University Main Campus", "endpoint_b": "Siem Reap Exchange", "bandwidth": "1 Gbps", "provisioning_stage": "Active", "status": "Active"},
+    {"circuit_id": "CIR-MEKONG-TR-01", "contract": "CON-005", "asset": "AST-001", "pop": "POP-BKK", "endpoint_a": "MekongNet Carrier NOC", "endpoint_b": "Fiberline Transit Gateway", "bandwidth": "10 Gbps", "provisioning_stage": "Active", "status": "Active"},
+    {"circuit_id": "CIR-SHV-PORT-01", "contract": "CON-006", "asset": "AST-006", "pop": "POP-SHV", "endpoint_a": "Sihanoukville Port Authority", "endpoint_b": "Sihanoukville Gateway", "bandwidth": "2 Gbps", "provisioning_stage": "Testing", "status": "Planned"},
+    {"circuit_id": "CIR-KCMPH-01", "contract": "CON-007", "asset": "AST-007", "pop": "POP-KDL", "endpoint_a": "Kampong Cham Provincial Hospital", "endpoint_b": "Kandal Access POP", "bandwidth": "500 Mbps", "provisioning_stage": "Survey", "status": "Planned"},
+    {"circuit_id": "CIR-KHMER-VOICE-01", "contract": "CON-008", "asset": "AST-008", "pop": "POP-WPH", "endpoint_a": "Khmer Retail Group HQ", "endpoint_b": "Wat Phnom Voice Core", "bandwidth": "60 voice channels", "provisioning_stage": "Active", "status": "Active"},
+])
+
+TICKETS.extend([
+    {"id": "TCK-2401", "customer": "MekongNet Carrier Services", "text": "Transit route packet loss above the contracted threshold", "opened_on": "2026-07-19", "ticket_class": "Wholesale", "priority": "Critical", "contract": "CON-005", "circuit": "CIR-MEKONG-TR-01", "sla_due_at": "2026-07-21T02:00:00+00:00"},
+    {"id": "TCK-2402", "customer": "Khmer Retail Group", "text": "SIP trunk call quality degradation during peak hours", "opened_on": "2026-07-18", "ticket_class": "Business", "priority": "High", "contract": "CON-008", "circuit": "CIR-KHMER-VOICE-01", "sla_due_at": "2026-07-21T08:30:00+00:00"},
+    {"id": "TCK-2403", "customer": "Kampong Cham Provincial Hospital", "text": "Site survey access approval pending with provincial administration", "opened_on": "2026-07-17", "ticket_class": "Enterprise", "priority": "Medium", "contract": "CON-007", "circuit": "CIR-KCMPH-01", "sla_due_at": "2026-07-23T10:00:00+00:00"},
+    {"id": "TCK-2404", "customer": "Lotus Residence", "text": "ONT replacement requested after power surge", "opened_on": "2026-07-18", "ticket_class": "Retail", "priority": "Low", "sla_due_at": "2026-07-22T09:00:00+00:00"},
+])
+
+INVOICES.extend([
+    {"id": "INV-2026-013", "customer": "Phnom Penh Digital Co.", "amount": 120, "status": "paid", "issued": "2026-07-01", "due": "2026-07-15", "paid": "2026-07-09"},
+    {"id": "INV-2026-014", "customer": "MekongNet Carrier Services", "amount": 8600, "status": "pending", "issued": "2026-07-01", "due": "2026-07-25", "paid": None},
+    {"id": "INV-2026-015", "customer": "Sihanoukville Port Authority", "amount": 4100, "status": "paid", "issued": "2026-07-01", "due": "2026-07-20", "paid": "2026-07-13"},
+    {"id": "INV-2026-016", "customer": "Angkor University", "amount": 3600, "status": "paid", "issued": "2026-07-01", "due": "2026-07-18", "paid": "2026-07-16"},
+    {"id": "INV-2026-017", "customer": "Khmer Retail Group", "amount": 980, "status": "overdue", "issued": "2026-06-01", "due": "2026-06-20", "paid": None},
+    {"id": "INV-2026-018", "customer": "Lotus Residence", "amount": 45, "status": "paid", "issued": "2026-07-01", "due": "2026-07-15", "paid": "2026-07-06"},
+])
+
+QUOTES.extend([
+    {"quote_number": "QTE-003", "account": "Phnom Penh Digital Co.", "product": "PRD-SIP-TRUNK", "status": "Approved", "feasibility_status": "Not required", "requested_capacity": "30 channels", "route_distance_km": None, "term_months": 24, "monthly_value": 150, "notes": "Expansion of the existing business voice service."},
+    {"quote_number": "QTE-004", "account": "MekongNet Carrier Services", "product": "PRD-IP-TRANSIT", "status": "Submitted", "feasibility_status": "Approved", "requested_capacity": "20 Gbps", "route_distance_km": 8.4, "term_months": 36, "monthly_value": 12400, "notes": "Diverse route and committed burst capacity required."},
+    {"quote_number": "QTE-005", "account": "Angkor University", "product": "PRD-DPLC", "status": "Approved", "feasibility_status": "Approved", "requested_capacity": "1 Gbps", "route_distance_km": 5.2, "term_months": 48, "monthly_value": 3600, "notes": "Campus-to-exchange dual-route DPLC."},
+    {"quote_number": "QTE-006", "account": "Sihanoukville Port Authority", "product": "PRD-FIBER-LEASE", "status": "Submitted", "feasibility_status": "Pending", "requested_capacity": "2 Gbps", "route_distance_km": 3.8, "term_months": 48, "monthly_value": 4100, "notes": "Port access expansion subject to civil permit."},
+    {"quote_number": "QTE-007", "account": "Lotus Residence", "product": "PRD-HOME-300", "status": "Approved", "feasibility_status": "Not required", "requested_capacity": "300 Mbps", "route_distance_km": None, "term_months": 12, "monthly_value": 45, "notes": "Residential fiber activation."},
+    {"quote_number": "QTE-008", "account": "Khmer Retail Group", "product": "PRD-VPBX", "status": "Draft", "feasibility_status": "Not required", "requested_capacity": "80 seats", "route_distance_km": None, "term_months": 24, "monthly_value": 450, "notes": "Branch voice consolidation proposal."},
+])
+
+ACTIVITIES.extend([
+    {"time_label": "10:15", "html": "<b>MekongNet Carrier Services</b> transit incident escalated to the NOC"},
+    {"time_label": "09:48", "html": "<b>Angkor University</b> DPLC circuit activated on the Siem Reap fiber ring"},
+    {"time_label": "09:10", "html": "<b>Khmer Retail Group</b> invoice moved into the collections workflow"},
+    {"time_label": "08:36", "html": "<b>Sihanoukville Gateway</b> capacity reservation created for port expansion"},
+])
+
 
 def seed() -> None:
     with SessionLocal() as session:
-        if session.scalar(select(Pop.id).limit(1)) is None:
-            session.add_all([Pop(**pop) for pop in POPS])
-            session.add_all([CustomerSite(**site) for site in SITES])
-            session.flush()
+        for pop in POPS:
+            if session.scalar(select(Pop.id).where(Pop.code == pop["code"])) is None:
+                session.add(Pop(**pop))
+        for site in SITES:
+            if session.scalar(select(CustomerSite.id).where(CustomerSite.code == site["code"])) is None:
+                session.add(CustomerSite(**site))
+        for asset in ASSETS:
+            if session.scalar(select(InfrastructureAsset.id).where(InfrastructureAsset.code == asset["code"])) is None:
+                session.add(InfrastructureAsset(**asset))
+        for product in PRODUCTS:
+            if session.scalar(select(ProductOffering.id).where(ProductOffering.code == product["code"])) is None:
+                session.add(ProductOffering(**product))
+        session.flush()
 
-        if session.scalar(select(Customer.id).limit(1)) is None:
-            pop_by_code = {pop.code: pop.id for pop in session.scalars(select(Pop)).all()}
-            site_by_code = {site.code: site.id for site in session.scalars(select(CustomerSite)).all()}
-            session.add_all(
-                Customer(
-                    name=customer["name"],
-                    site_id=site_by_code[customer["site"]],
-                    pop_id=pop_by_code[customer["pop"]],
-                    plan=customer["plan"],
-                    account_type=customer["account_type"],
-                    verification_status=customer["verification_status"],
-                    status=customer["status"],
-                    risk=customer["risk"],
-                    monthly_value=customer["monthly_value"],
-                    tenure=customer["tenure"],
-                    port=customer["port"],
-                    reasons=customer["reasons"],
+        pop_by_code = {pop.code: pop.id for pop in session.scalars(select(Pop)).all()}
+        site_by_code = {site.code: site.id for site in session.scalars(select(CustomerSite)).all()}
+        customer_by_name = {customer.name: customer.id for customer in session.scalars(select(Customer)).all()}
+        for customer in CUSTOMERS:
+            if customer["name"] not in customer_by_name:
+                session.add(
+                    Customer(
+                        name=customer["name"],
+                        site_id=site_by_code[customer["site"]],
+                        pop_id=pop_by_code[customer["pop"]],
+                        plan=customer["plan"],
+                        account_type=customer["account_type"],
+                        verification_status=customer["verification_status"],
+                        billing_model=customer.get("billing_model", "Recurring"),
+                        status=customer["status"],
+                        risk=customer["risk"],
+                        monthly_value=customer["monthly_value"],
+                        tenure=customer["tenure"],
+                        port=customer["port"],
+                        reasons=customer["reasons"],
+                    )
                 )
-                for customer in CUSTOMERS
-            )
-            session.flush()
+        session.flush()
 
         customer_by_name = {customer.name: customer.id for customer in session.scalars(select(Customer)).all()}
-        if session.scalar(select(Ticket.id).limit(1)) is None:
-            session.add_all(
-                Ticket(
-                    id=ticket["id"],
-                    customer_id=customer_by_name[ticket["customer"]],
-                    text=ticket["text"],
-                    opened_on=date.fromisoformat(ticket["opened_on"]),
+        for contract in CONTRACTS:
+            if session.scalar(select(ServiceContract.id).where(ServiceContract.contract_number == contract["contract_number"])) is None:
+                session.add(
+                    ServiceContract(
+                        contract_number=contract["contract_number"],
+                        account_name=contract["account_name"],
+                        account_segment=contract["account_segment"],
+                        product=contract["product"],
+                        status=contract["status"],
+                        start_date=date.fromisoformat(contract["start_date"]),
+                        end_date=date.fromisoformat(contract["end_date"]),
+                        monthly_value=contract["monthly_value"],
+                        sla_availability=contract["sla_availability"],
+                        sla_mttr_hours=contract["sla_mttr_hours"],
+                        msa_number=contract["msa_number"],
+                        service_schedule_number=contract["service_schedule_number"],
+                        route_diversity=contract["route_diversity"],
+                        service_credit_rate=contract["service_credit_rate"],
+                    )
                 )
-                for ticket in TICKETS
-            )
-        if session.scalar(select(Invoice.id).limit(1)) is None:
-            session.add_all(
-                Invoice(
-                    id=invoice["id"],
-                    customer_id=customer_by_name[invoice["customer"]],
-                    amount=invoice["amount"],
-                    status=invoice["status"],
-                    issued=date.fromisoformat(invoice["issued"]),
-                    due=date.fromisoformat(invoice["due"]),
-                    paid=date.fromisoformat(invoice["paid"]) if invoice["paid"] else None,
+        session.flush()
+
+        contract_by_number = {contract.contract_number: contract.id for contract in session.scalars(select(ServiceContract)).all()}
+        asset_by_code = {asset.code: asset.id for asset in session.scalars(select(InfrastructureAsset)).all()}
+        for circuit in CIRCUITS:
+            if session.scalar(select(Circuit.id).where(Circuit.circuit_id == circuit["circuit_id"])) is None:
+                session.add(
+                    Circuit(
+                        circuit_id=circuit["circuit_id"],
+                        contract_id=contract_by_number[circuit["contract"]],
+                        asset_id=asset_by_code[circuit["asset"]],
+                        pop_id=pop_by_code[circuit["pop"]],
+                        endpoint_a=circuit["endpoint_a"],
+                        endpoint_b=circuit["endpoint_b"],
+                        bandwidth=circuit["bandwidth"],
+                        provisioning_stage=circuit["provisioning_stage"],
+                        status=circuit["status"],
+                    )
                 )
-                for invoice in INVOICES
-            )
-        if session.scalar(select(Activity.id).limit(1)) is None:
-            session.add_all([Activity(**activity) for activity in ACTIVITIES])
-        if session.scalar(select(InfrastructureAsset.id).limit(1)) is None:
-            session.add_all([InfrastructureAsset(**asset) for asset in ASSETS])
-            session.flush()
-        if session.scalar(select(ProductOffering.id).limit(1)) is None:
-            session.add_all([ProductOffering(**product) for product in PRODUCTS])
-            session.flush()
-        if session.scalar(select(ServiceContract.id).limit(1)) is None:
-            session.add_all(
-                ServiceContract(
-                    contract_number=contract["contract_number"],
-                    account_name=contract["account_name"],
-                    account_segment=contract["account_segment"],
-                    product=contract["product"],
-                    status=contract["status"],
-                    start_date=date.fromisoformat(contract["start_date"]),
-                    end_date=date.fromisoformat(contract["end_date"]),
-                    monthly_value=contract["monthly_value"],
-                    sla_availability=contract["sla_availability"],
-                    sla_mttr_hours=contract["sla_mttr_hours"],
-                    msa_number=contract["msa_number"],
-                    service_schedule_number=contract["service_schedule_number"],
-                    route_diversity=contract["route_diversity"],
-                    service_credit_rate=contract["service_credit_rate"],
+        session.flush()
+
+        circuit_by_code = {circuit.circuit_id: circuit.id for circuit in session.scalars(select(Circuit)).all()}
+        for ticket in TICKETS:
+            if session.get(Ticket, ticket["id"]) is None:
+                session.add(
+                    Ticket(
+                        id=ticket["id"],
+                        customer_id=customer_by_name[ticket["customer"]],
+                        text=ticket["text"],
+                        opened_on=date.fromisoformat(ticket["opened_on"]),
+                        ticket_class=ticket.get("ticket_class", "Retail"),
+                        priority=ticket.get("priority", "Normal"),
+                        contract_id=contract_by_number.get(ticket.get("contract")),
+                        circuit_id=circuit_by_code.get(ticket.get("circuit")),
+                        sla_due_at=datetime.fromisoformat(ticket["sla_due_at"]) if ticket.get("sla_due_at") else None,
+                    )
                 )
-                for contract in CONTRACTS
-            )
-            session.flush()
-        if session.scalar(select(Circuit.id).limit(1)) is None:
-            contract_by_number = {contract.contract_number: contract.id for contract in session.scalars(select(ServiceContract)).all()}
-            asset_by_code = {asset.code: asset.id for asset in session.scalars(select(InfrastructureAsset)).all()}
-            pop_by_code = {pop.code: pop.id for pop in session.scalars(select(Pop)).all()}
-            session.add_all(
-                Circuit(
-                    circuit_id=circuit["circuit_id"],
-                    contract_id=contract_by_number[circuit["contract"]],
-                    asset_id=asset_by_code[circuit["asset"]],
-                    pop_id=pop_by_code[circuit["pop"]],
-                    endpoint_a=circuit["endpoint_a"],
-                    endpoint_b=circuit["endpoint_b"],
-                    bandwidth=circuit["bandwidth"],
-                    provisioning_stage=circuit["provisioning_stage"],
-                    status=circuit["status"],
+        for invoice in INVOICES:
+            if session.get(Invoice, invoice["id"]) is None:
+                session.add(
+                    Invoice(
+                        id=invoice["id"],
+                        customer_id=customer_by_name[invoice["customer"]],
+                        amount=invoice["amount"],
+                        status=invoice["status"],
+                        issued=date.fromisoformat(invoice["issued"]),
+                        due=date.fromisoformat(invoice["due"]),
+                        paid=date.fromisoformat(invoice["paid"]) if invoice["paid"] else None,
+                    )
                 )
-                for circuit in CIRCUITS
-            )
-        if session.scalar(select(Quote.id).limit(1)) is None:
-            product_by_code = {product.code: product.id for product in session.scalars(select(ProductOffering)).all()}
-            session.add_all(
-                Quote(
-                    quote_number=quote["quote_number"],
-                    account_id=customer_by_name[quote["account"]],
-                    product_id=product_by_code[quote["product"]],
-                    status=quote["status"],
-                    feasibility_status=quote["feasibility_status"],
-                    requested_capacity=quote["requested_capacity"],
-                    route_distance_km=quote["route_distance_km"],
-                    term_months=quote["term_months"],
-                    monthly_value=quote["monthly_value"],
-                    notes=quote["notes"],
+        for activity in ACTIVITIES:
+            if session.scalar(select(Activity.id).where(Activity.html == activity["html"])) is None:
+                session.add(Activity(**activity))
+        session.flush()
+
+        product_by_code = {product.code: product.id for product in session.scalars(select(ProductOffering)).all()}
+        for quote in QUOTES:
+            if session.scalar(select(Quote.id).where(Quote.quote_number == quote["quote_number"])) is None:
+                session.add(
+                    Quote(
+                        quote_number=quote["quote_number"],
+                        account_id=customer_by_name[quote["account"]],
+                        product_id=product_by_code[quote["product"]],
+                        status=quote["status"],
+                        feasibility_status=quote["feasibility_status"],
+                        requested_capacity=quote["requested_capacity"],
+                        route_distance_km=quote["route_distance_km"],
+                        term_months=quote["term_months"],
+                        monthly_value=quote["monthly_value"],
+                        notes=quote["notes"],
+                    )
                 )
-                for quote in QUOTES
-            )
         session.commit()
 
 

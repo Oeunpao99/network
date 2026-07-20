@@ -272,6 +272,11 @@
   .drawer-field{ margin-bottom:14px; }
   .drawer-field-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:4px; }
   .drawer-field-value{ font-size:13.5px; color:var(--text-primary); }
+  .crm-input{ width:100%; border:1px solid var(--border); border-radius:6px; padding:8px 9px; background:var(--bg-panel-alt); color:var(--text-primary); font:inherit; outline:none; }
+  .crm-input:focus{ border-color:var(--signal); }
+  .crm-coordinate-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn:disabled{ cursor:wait; opacity:0.65; }
+  .form-submit-error{ margin-top:12px; color:var(--red); font-size:12px; }
   .drawer-divider{ height:1px; background:var(--border-soft); margin:18px 0; }
 
   .btn{
@@ -505,6 +510,10 @@ let TICKETS = [
   { id:'TCK-3370', account:'Sok Dara', seg:'individual', issue:'TC-Home router not connecting after outage', priority:'Low', sla:'—', status:'active' },
 ];
 
+let POP_OPTIONS = [];
+let SITE_OPTIONS = [];
+let PRODUCT_OPTIONS = [];
+
 /* ============ STATE / RENDER ============ */
 const requestedView = crmParams.get('view');
 const initialView = NAV.some((item) => item.id === requestedView) ? requestedView : 'overview';
@@ -545,6 +554,21 @@ function viewOverview(){
   const segLabels = { individual:'Individual', business:'Business', enterprise:'Enterprise', wholesale:'Wholesale / Carrier' };
   const maxSeg = Math.max(...Object.values(segCounts));
   const sparkVals = [98.2,99.1,99.4,97.9,99.6,99.8,99.3];
+  const attentionItems = [
+    ...TICKETS.filter((ticket) => ticket.status === 'breach' || ticket.status === 'risk').map((ticket) => ({
+      kind:'ticket', reference:ticket.id, type:'Ticket', account:ticket.account, detail:ticket.issue,
+      statusClass:ticket.status, statusLabel:ticket.status === 'breach' ? 'Breach' : 'At risk',
+    })),
+    ...CONTRACTS.filter((contract) => contract.status !== 'ok').map((contract) => ({
+      kind:'contract', reference:contract.circuit, type:'Contract', account:contract.account,
+      detail:`${contract.type} SLA target ${contract.target.toFixed(2)}%`,
+      statusClass:contract.status === 'crit' ? 'breach' : 'risk', statusLabel:contract.status === 'crit' ? 'Critical' : 'At risk',
+    })),
+    ...INVOICES.filter((invoice) => invoice.status === 'overdue').map((invoice) => ({
+      kind:'invoice', reference:invoice.id, type:'Billing', account:invoice.account, detail:`Invoice overdue — ${fmt(invoice.amount)}`,
+      statusClass:'overdue', statusLabel:'Overdue',
+    })),
+  ].slice(0, 6);
 
   return `
   <div class="kpi-grid">
@@ -595,11 +619,9 @@ function viewOverview(){
     <div class="panel-title">Attention needed</div>
     <div class="panel-caption">Items surfaced from tickets and contract SLA status</div>
     <table>
-      <thead><tr><th>Type</th><th>Reference</th><th>Account</th><th>Detail</th><th>Status</th></tr></thead>
+      <thead><tr><th>Reference</th><th>Type</th><th>Account</th><th>Detail</th><th>Status</th></tr></thead>
       <tbody>
-        <tr><td class="mono">TCK-3391</td><td>Ticket</td><td>Chenla Rural ISP</td><td>E1 circuit degraded — SLA breached</td><td><span class="status-dot breach">Breach</span></td></tr>
-        <tr><td class="mono">E1-PP-0311</td><td>Contract</td><td>Chenla Rural ISP</td><td>Uptime 97.80% vs 99.50% target</td><td><span class="status-dot breach">Critical</span></td></tr>
-        <tr><td class="mono">INV-55040</td><td>Billing</td><td>Golden Rice Import Co.</td><td>Invoice overdue — ${fmt(265)}</td><td><span class="status-dot overdue">Overdue</span></td></tr>
+        ${attentionItems.map((item) => `<tr ${item.kind === 'ticket' ? `data-ticket="${item.reference}"` : item.kind === 'contract' ? `data-attention-contract="${item.reference}"` : `data-attention-account="${escapeHtml(item.account)}"`}><td class="mono">${escapeHtml(item.reference)}</td><td>${item.type}</td><td>${escapeHtml(item.account)}</td><td>${escapeHtml(item.detail)}</td><td><span class="status-dot ${item.statusClass}">${item.statusLabel}</span></td></tr>`).join('') || '<tr><td colspan="5" class="empty-note">No SLA, ticket, or billing issues need attention.</td></tr>'}
       </tbody>
     </table>
   </div>
@@ -615,6 +637,7 @@ function viewAccounts(){
     <div class="filter-chips">
       ${segs.map(([k,l])=>`<div class="chip ${state.accountFilter===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
     </div>
+    <button class="btn primary" type="button" data-add-account>Add account</button>
   </div>
   <div class="table-wrap">
     <table>
@@ -639,7 +662,12 @@ function viewAccounts(){
 
 /* ---------- Catalog ---------- */
 function viewCatalog(){
-  return Object.keys(CATALOG).map(group => `
+  return `
+    <div class="section-head">
+      <div class="panel-caption" style="margin-bottom:0;">Manage subscription, wholesale, and contract offerings.</div>
+      <button class="btn primary" type="button" data-add-product>Add product</button>
+    </div>
+  ${Object.keys(CATALOG).map(group => `
     <div class="catalog-group">
       <div class="catalog-group-head">
         <div class="catalog-group-title">${group}</div>
@@ -656,7 +684,7 @@ function viewCatalog(){
           </div>`).join('')}
       </div>
     </div>
-  `).join('');
+  `).join('')}`;
 }
 
 /* ---------- Orders ---------- */
@@ -886,23 +914,32 @@ function contractHealth(contract){
   return 'ok';
 }
 
-async function requestApi(path){
-  const response = await fetch(`${API_BASE}${path}`);
-  if(!response.ok) throw new Error(`Request failed: ${path}`);
-  return response.json();
+async function requestApi(path, options = {}){
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { 'Content-Type':'application/json', ...(options.headers || {}) },
+  });
+  const data = await response.json().catch(() => null);
+  if(!response.ok) throw new Error(data?.detail || `Request failed: ${path}`);
+  return data;
 }
 
 async function loadBackendData(){
   try {
-    const [customers, products, quotes, contracts, circuits, invoices] = await Promise.all([
+    const [customers, products, quotes, contracts, circuits, invoices, pops, sites] = await Promise.all([
       requestApi('/api/customers'),
       requestApi('/api/catalog/products'),
       requestApi('/api/quotes'),
       requestApi('/api/contracts'),
       requestApi('/api/circuits'),
       requestApi('/api/invoices'),
+      requestApi('/api/pops'),
+      requestApi('/api/customer-sites'),
     ]);
 
+    POP_OPTIONS = pops;
+    SITE_OPTIONS = sites;
+    PRODUCT_OPTIONS = products;
     const accountById = new Map(customers.map((customer) => [customer.id, customer]));
     ACCOUNTS = customers.map((customer) => {
       const portRatio = customer.pop.ports_total ? customer.pop.ports_used / customer.pop.ports_total : 0;
@@ -916,6 +953,14 @@ async function loadBackendData(){
         status: accountStatus(customer),
         since: customer.tenure,
         contact: customer.site.name,
+        site: customer.site.name,
+        pop: customer.pop.name,
+        accountType: customer.account_type,
+        verificationStatus: customer.verification_status,
+        billingModel: customer.billing_model,
+        risk: customer.risk,
+        reasons: customer.reasons || [],
+        tickets: customer.tickets || [],
         signal: portRatio >= .9 ? 1 : portRatio >= .75 ? 2 : portRatio >= .5 ? 3 : 4,
       };
     });
@@ -929,7 +974,9 @@ async function loadBackendData(){
       seg: segmentForAccountType(customer.account_type),
       issue: ticket.text,
       priority: ticket.priority || 'Normal',
+      ticketClass: ticket.ticket_class || 'Retail',
       sla: remainingSla(ticket.sla_due_at),
+      slaDueAt: ticket.sla_due_at,
       status: ticket.sla_due_at && new Date(ticket.sla_due_at) < new Date() ? 'breach' : (ticket.priority === 'Critical' || ticket.priority === 'High' ? 'risk' : 'active'),
       openedOn: ticket.opened_on,
     })));
@@ -1003,6 +1050,8 @@ async function loadBackendData(){
 
 /* ============ INTERACTIONS ============ */
 function attachViewHandlers(){
+  document.querySelector('[data-add-account]')?.addEventListener('click', openAccountForm);
+  document.querySelector('[data-add-product]')?.addEventListener('click', openProductForm);
   document.querySelectorAll('.chip[data-filter]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.accountFilter = el.dataset.filter; render(); });
   });
@@ -1019,6 +1068,24 @@ function attachViewHandlers(){
     row.addEventListener('click', ()=>{
       const c = CONTRACTS.find(x=>x.circuit===row.dataset.circuit);
       openContractDrawer(c);
+    });
+  });
+  document.querySelectorAll('tr[data-ticket]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const ticket = TICKETS.find((item) => item.id === row.dataset.ticket);
+      if(ticket) openTicketDetail(ticket);
+    });
+  });
+  document.querySelectorAll('tr[data-attention-contract]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const contract = CONTRACTS.find((item) => item.circuit === row.dataset.attentionContract);
+      if(contract) openContractDrawer(contract);
+    });
+  });
+  document.querySelectorAll('tr[data-attention-account]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const account = ACCOUNTS.find((item) => item.name === row.dataset.attentionAccount);
+      if(account) openAccountRecord(account);
     });
   });
 }
@@ -1057,13 +1124,299 @@ function openDrawer(acc){
 
     <div class="drawer-divider"></div>
     <div class="btn-row" style="margin-top:0;">
-      <div class="btn primary">Open in CRM record</div>
-      <div class="btn">Raise ticket</div>
+      <button class="btn primary" id="openCrmRecord" type="button">Open in CRM record</button>
+      <button class="btn" id="raiseTicket" type="button">Raise ticket</button>
     </div>
   `;
   document.getElementById('drawerOverlay').classList.add('open');
   document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('openCrmRecord').addEventListener('click', () => openAccountRecord(acc));
+  document.getElementById('raiseTicket').addEventListener('click', () => openTicketForm(acc));
 }
+
+function openAccountRecord(acc){
+  const accountTickets = acc.tickets || [];
+  const accountReasons = acc.reasons || [];
+  const tickets = accountTickets.length ? accountTickets.map((ticket) => `
+    <div class="order-card" style="margin-bottom:8px;">
+      <div class="order-card-id">${escapeHtml(ticket.id)} · ${escapeHtml(ticket.priority || 'Normal')}</div>
+      <div class="order-card-name">${escapeHtml(ticket.text)}</div>
+      <div class="cell-sub">Opened ${escapeHtml(ticket.opened_on)}${ticket.sla_due_at ? ` · SLA ${escapeHtml(remainingSla(ticket.sla_due_at))}` : ''}</div>
+    </div>`).join('') : '<div class="empty-note">No tickets recorded for this account.</div>';
+  const reasons = accountReasons.length ? `<div class="drawer-field-value">${accountReasons.map(escapeHtml).join('<br>')}</div>` : '<div class="drawer-field-value">No active risk reasons</div>';
+
+  document.getElementById('drawerBody').classList.add('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">${escapeHtml(acc.name)}</div>
+    <div class="drawer-sub mono">${escapeHtml(acc.id)} · ${escapeHtml(acc.accountType || acc.segment)}</div>
+    <div class="drawer-divider"></div>
+    <div class="drawer-field"><div class="drawer-field-label">Service</div><div class="drawer-field-value">${escapeHtml(acc.products.join(', '))}</div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Site / POP</div><div class="drawer-field-value">${escapeHtml(acc.site || acc.contact)} · ${escapeHtml(acc.pop || 'Not assigned')}</div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Billing</div><div class="drawer-field-value">${escapeHtml(acc.billingModel || 'Recurring')} · <span class="mono">${fmt(acc.mrr)}/mo</span></div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Verification / Risk</div><div class="drawer-field-value">${escapeHtml(acc.verificationStatus || 'Not recorded')} · ${escapeHtml(acc.risk || 'Low')}</div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Risk reasons</div>${reasons}</div>
+    <div class="drawer-divider"></div>
+    <div class="drawer-field-label" style="margin-bottom:8px;">Service assurance</div>
+    ${tickets}
+    <div class="btn-row" style="margin-top:20px;"><button class="btn primary" id="recordRaiseTicket" type="button">Raise ticket</button><button class="btn" id="recordBack" type="button">Back</button></div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('recordRaiseTicket').addEventListener('click', () => openTicketForm(acc));
+  document.getElementById('recordBack').addEventListener('click', () => openDrawer(acc));
+}
+
+function ticketClassForAccount(acc){
+  if(acc.segment === 'wholesale') return 'Wholesale';
+  if(acc.segment === 'enterprise') return 'Enterprise';
+  if(acc.segment === 'business') return 'Business';
+  return 'Retail';
+}
+
+function openTicketForm(acc){
+  document.getElementById('drawerBody').classList.remove('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">Raise ticket</div>
+    <div class="drawer-sub">${escapeHtml(acc.name)} · ${escapeHtml(acc.id)}</div>
+    <form id="ticketForm">
+      <div class="drawer-field"><div class="drawer-field-label">Issue</div><textarea class="crm-input" name="text" rows="5" maxlength="300" required autofocus placeholder="Describe the service issue or customer request"></textarea></div>
+      <div class="drawer-field"><div class="drawer-field-label">Class</div><select class="crm-input" name="ticketClass"><option${ticketClassForAccount(acc) === 'Retail' ? ' selected' : ''}>Retail</option><option${ticketClassForAccount(acc) === 'Business' ? ' selected' : ''}>Business</option><option${ticketClassForAccount(acc) === 'Enterprise' ? ' selected' : ''}>Enterprise</option><option${ticketClassForAccount(acc) === 'Wholesale' ? ' selected' : ''}>Wholesale</option></select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Priority</div><select class="crm-input" name="priority"><option>Low</option><option selected>Normal</option><option>Medium</option><option>High</option><option>Critical</option></select></div>
+      <div class="btn-row" style="margin-top:20px;"><button class="btn primary" id="createTicketButton" type="submit">Create ticket</button><button class="btn" id="ticketCancel" type="button">Cancel</button></div>
+      <div class="form-submit-error" id="ticketFormError" style="display:none;"></div>
+    </form>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('ticketCancel').addEventListener('click', () => openAccountRecord(acc));
+  document.getElementById('ticketForm').addEventListener('submit', (event) => createTicket(event, acc));
+}
+
+async function createTicket(event, acc){
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const button = document.getElementById('createTicketButton');
+  const error = document.getElementById('ticketFormError');
+  button.disabled = true;
+  button.textContent = 'Creating...';
+  error.style.display = 'none';
+
+  try {
+    await requestApi('/api/tickets', {
+      method:'POST',
+      body:JSON.stringify({
+        customer_id:acc.apiId,
+        text:form.get('text').trim(),
+        ticket_class:form.get('ticketClass'),
+        priority:form.get('priority'),
+      }),
+    });
+    closeDrawer();
+    await loadBackendData();
+    notifyHostDataChanged();
+  } catch(requestError) {
+    error.textContent = requestError.message || 'Unable to create this ticket.';
+    error.style.display = 'block';
+    button.disabled = false;
+    button.textContent = 'Create ticket';
+  }
+}
+
+function openTicketDetail(ticket){
+  const account = ACCOUNTS.find((item) => item.apiId === ticket.customerId || item.name === ticket.account);
+  const statusLabel = ticket.status === 'breach' ? 'Breach' : ticket.status === 'risk' ? 'At risk' : 'Open';
+  document.getElementById('drawerBody').classList.remove('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">${escapeHtml(ticket.id)}</div>
+    <div class="drawer-sub">${escapeHtml(ticket.account)}</div>
+    <div class="drawer-divider"></div>
+    <div class="drawer-field"><div class="drawer-field-label">Issue</div><div class="drawer-field-value">${escapeHtml(ticket.issue)}</div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Class / Priority</div><div class="drawer-field-value">${escapeHtml(ticket.ticketClass || 'Retail')} · ${escapeHtml(ticket.priority)}</div></div>
+    <div class="drawer-field"><div class="drawer-field-label">SLA</div><div class="drawer-field-value"><span class="status-dot ${ticket.status}">${statusLabel}</span> · ${escapeHtml(ticket.sla)}</div></div>
+    <div class="drawer-field"><div class="drawer-field-label">Opened</div><div class="drawer-field-value mono">${escapeHtml(ticket.openedOn)}</div></div>
+    <div class="btn-row" style="margin-top:20px;">${account ? '<button class="btn primary" id="ticketOpenAccount" type="button">Open account record</button>' : ''}<button class="btn" id="ticketClose" type="button">Close</button></div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('ticketClose').addEventListener('click', closeDrawer);
+  if(account) document.getElementById('ticketOpenAccount').addEventListener('click', () => openAccountRecord(account));
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>'"]/g, (character) => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'
+  })[character]);
+}
+
+function openAccountForm(){
+  if(!POP_OPTIONS.length || !SITE_OPTIONS.length || !PRODUCT_OPTIONS.length){
+    window.alert('Account options are still loading. Please try again in a moment.');
+    return;
+  }
+
+  const siteOptions = SITE_OPTIONS.map((site) => `<option value="${site.id}">${escapeHtml(site.name)}</option>`).join('');
+  const popOptions = POP_OPTIONS.map((pop) => `<option value="${pop.id}">${escapeHtml(pop.name)} · ${pop.ports_used}/${pop.ports_total} ports</option>`).join('');
+  const productOptions = PRODUCT_OPTIONS.filter((product) => product.is_orderable).map((product) => `<option value="${escapeHtml(product.name)}">${escapeHtml(product.name)} · ${escapeHtml(product.segment)}</option>`).join('');
+
+  document.getElementById('drawerBody').classList.remove('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">Add account</div>
+    <div class="drawer-sub">Create a customer account and assign its initial service.</div>
+    <form id="accountForm">
+      <div class="drawer-field"><div class="drawer-field-label">Account name</div><input class="crm-input" name="name" required autofocus></div>
+      <div class="drawer-field"><div class="drawer-field-label">Customer site</div><select class="crm-input" name="siteId" required>${siteOptions}</select></div>
+      <div class="drawer-divider"></div>
+      <div class="drawer-field"><div class="drawer-field-label">New customer site (optional)</div><input class="crm-input" name="newSiteName" placeholder="Create a new mapped site"></div>
+      <div class="crm-coordinate-grid">
+        <div class="drawer-field"><div class="drawer-field-label">New site latitude</div><input class="crm-input" name="latitude" type="number" min="-90" max="90" step="any" placeholder="11.575"></div>
+        <div class="drawer-field"><div class="drawer-field-label">New site longitude</div><input class="crm-input" name="longitude" type="number" min="-180" max="180" step="any" placeholder="104.918"></div>
+      </div>
+      <div class="drawer-field"><div class="drawer-field-label">POP / exchange</div><select class="crm-input" name="popId" required>${popOptions}</select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Service plan</div><select class="crm-input" name="plan" required>${productOptions}</select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Account type</div><select class="crm-input" name="accountType"><option>Residential</option><option selected>SME</option><option>Enterprise</option><option>Government</option><option>Carrier</option></select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Billing model</div><select class="crm-input" name="billingModel"><option selected>Recurring</option><option>Usage</option><option>Consolidated Postpaid</option></select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Monthly value (USD)</div><input class="crm-input" name="monthlyValue" type="number" min="0" step="0.01" required></div>
+      <div class="drawer-field"><div class="drawer-field-label">POP port</div><input class="crm-input" name="port" placeholder="GE0/0/01" required></div>
+      <div class="drawer-field"><div class="drawer-field-label">Verification status</div><select class="crm-input" name="verificationStatus"><option selected>Pending</option><option>KYC Verified</option><option>KYB Verified</option><option>Exempt</option></select></div>
+      <div class="btn-row" style="margin-top:20px;"><button class="btn primary" id="createAccountButton" type="submit">Create account</button><button class="btn" id="accountCancel" type="button">Cancel</button></div>
+      <div class="form-submit-error" id="accountFormError" style="display:none;"></div>
+    </form>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('accountCancel').addEventListener('click', closeDrawer);
+  document.getElementById('accountForm').addEventListener('submit', createAccount);
+}
+
+async function createAccount(event){
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const button = document.getElementById('createAccountButton');
+  const error = document.getElementById('accountFormError');
+  button.disabled = true;
+  button.textContent = 'Creating...';
+  error.style.display = 'none';
+
+  try {
+    const newSiteName = form.get('newSiteName').trim();
+    const latitude = form.get('latitude');
+    const longitude = form.get('longitude');
+    const hasLocationValues = latitude !== '' || longitude !== '';
+    let siteId = Number(form.get('siteId'));
+    if(newSiteName || hasLocationValues){
+      if(!newSiteName || latitude === '' || longitude === ''){
+        throw new Error('Enter a new site name, latitude, and longitude together.');
+      }
+      const site = await requestApi('/api/customer-sites', {
+        method:'POST',
+        body:JSON.stringify({ name:newSiteName, latitude:Number(latitude), longitude:Number(longitude) }),
+      });
+      siteId = site.id;
+    }
+    await requestApi('/api/customers', {
+      method:'POST',
+      body:JSON.stringify({
+        name:form.get('name').trim(),
+        site_id:siteId,
+        pop_id:Number(form.get('popId')),
+        plan:form.get('plan'),
+        account_type:form.get('accountType'),
+        verification_status:form.get('verificationStatus'),
+        billing_model:form.get('billingModel'),
+        status:'Onboarding',
+        risk:'Low',
+        monthly_value:Number(form.get('monthlyValue')),
+        tenure:'New',
+        port:form.get('port').trim(),
+        reasons:[],
+      }),
+    });
+    closeDrawer();
+    await loadBackendData();
+    notifyHostDataChanged();
+  } catch(requestError) {
+    error.textContent = requestError.message || 'Unable to create this account.';
+    error.style.display = 'block';
+    button.disabled = false;
+    button.textContent = 'Create account';
+  }
+}
+
+function notifyHostDataChanged(){
+  if(window.parent !== window){
+    window.parent.postMessage({ source:'telecom-crm', type:'data-changed' }, window.location.origin);
+  }
+}
+
+function openProductForm(){
+  document.getElementById('drawerBody').classList.remove('wide');
+  document.getElementById('drawerBody').innerHTML = `
+    <span class="drawer-close" id="drawerClose">&times;</span>
+    <div class="drawer-title">Add product</div>
+    <div class="drawer-sub">Create an orderable subscription, wholesale, or contract offering.</div>
+    <form id="productForm">
+      <div class="drawer-field"><div class="drawer-field-label">Product name</div><input class="crm-input" name="name" required autofocus></div>
+      <div class="drawer-field"><div class="drawer-field-label">Customer segment</div><select class="crm-input" name="segment"><option>Residential</option><option selected>SME</option><option>Enterprise</option><option>Government</option><option>Carrier</option></select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Commercial model</div><select class="crm-input" name="commercialModel"><option selected>Subscription</option><option>Contract</option><option>Wholesale</option></select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Pricing model</div><select class="crm-input" name="pricingModel" id="productPricingModel"><option selected>Fixed</option><option>Custom</option></select></div>
+      <div class="drawer-field"><div class="drawer-field-label">Base monthly price (USD)</div><input class="crm-input" name="baseMonthlyPrice" id="productBaseMonthlyPrice" type="number" min="0" step="0.01" required></div>
+      <label class="drawer-field-value" style="display:flex; align-items:center; gap:8px;"><input name="isOrderable" type="checkbox" checked> Available for new orders</label>
+      <div class="btn-row" style="margin-top:20px;"><button class="btn primary" id="createProductButton" type="submit">Create product</button><button class="btn" id="productCancel" type="button">Cancel</button></div>
+      <div class="form-submit-error" id="productFormError" style="display:none;"></div>
+    </form>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('productCancel').addEventListener('click', closeDrawer);
+  document.getElementById('productPricingModel').addEventListener('change', updateProductPriceField);
+  document.getElementById('productForm').addEventListener('submit', createProduct);
+}
+
+function updateProductPriceField(event){
+  const input = document.getElementById('productBaseMonthlyPrice');
+  const isFixed = event.target.value === 'Fixed';
+  input.disabled = !isFixed;
+  input.required = isFixed;
+  if(!isFixed) input.value = '';
+}
+
+async function createProduct(event){
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const pricingModel = form.get('pricingModel');
+  const button = document.getElementById('createProductButton');
+  const error = document.getElementById('productFormError');
+  button.disabled = true;
+  button.textContent = 'Creating...';
+  error.style.display = 'none';
+
+  try {
+    await requestApi('/api/catalog/products', {
+      method:'POST',
+      body:JSON.stringify({
+        name:form.get('name').trim(),
+        segment:form.get('segment'),
+        commercial_model:form.get('commercialModel'),
+        pricing_model:pricingModel,
+        base_monthly_price:pricingModel === 'Fixed' ? Number(form.get('baseMonthlyPrice')) : null,
+        is_orderable:form.get('isOrderable') === 'on',
+      }),
+    });
+    closeDrawer();
+    await loadBackendData();
+    notifyHostDataChanged();
+  } catch(requestError) {
+    error.textContent = requestError.message || 'Unable to create this product.';
+    error.style.display = 'block';
+    button.disabled = false;
+    button.textContent = 'Create product';
+  }
+}
+
 function openContractDrawer(c, tab){
   tab = tab || 'contract';
   const tabs = [['contract','Contract'],['uptime','Uptime History'],['breach','Breach Log ('+c.breaches.length+')']];

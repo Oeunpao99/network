@@ -233,9 +233,16 @@ function App() {
       }
     }
 
+    function handleCrmDataChanged(event) {
+      if (event.origin !== window.location.origin || event.data?.source !== "telecom-crm" || event.data?.type !== "data-changed") return;
+      loadData();
+    }
+
     loadData();
+    window.addEventListener("message", handleCrmDataChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener("message", handleCrmDataChanged);
     };
   }, []);
 

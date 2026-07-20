@@ -34,6 +34,8 @@ from app.schemas import (
     ProductOfferingRead,
     QuoteCreate,
     QuoteRead,
+    TicketCreate,
+    TicketRead,
 )
 
 GIS_DIR = PROJECT_ROOT / "public" / "gis"
@@ -64,6 +66,11 @@ def get_session() -> Generator[Session, None, None]:
 def next_code(session: Session, model: type, prefix: str) -> str:
     count = session.scalar(select(func.count()).select_from(model)) or 0
     return f"{prefix}-{count + 1:02d}"
+
+
+def next_ticket_id(session: Session) -> str:
+    numbers = [int(ticket_id[4:]) for ticket_id in session.scalars(select(Ticket.id)).all() if ticket_id.startswith("TCK-") and ticket_id[4:].isdigit()]
+    return f"TCK-{max(numbers, default=0) + 1:04d}"
 
 
 def commit_and_refresh(session: Session, record):
@@ -296,6 +303,27 @@ def create_customer(payload: CustomerCreate, session: Session = Depends(get_sess
     if session.get(Pop, payload.pop_id) is None:
         raise HTTPException(status_code=404, detail="POP was not found.")
     record = Customer(**payload.model_dump())
+    return commit_and_refresh(session, record)
+
+
+@app.post("/api/tickets", response_model=TicketRead, status_code=status.HTTP_201_CREATED)
+def create_ticket(payload: TicketCreate, session: Session = Depends(get_session)):
+    if session.get(Customer, payload.customer_id) is None:
+        raise HTTPException(status_code=404, detail="Customer was not found.")
+    if payload.contract_id is not None and session.get(ServiceContract, payload.contract_id) is None:
+        raise HTTPException(status_code=404, detail="Contract was not found.")
+    if payload.circuit_id is not None and session.get(Circuit, payload.circuit_id) is None:
+        raise HTTPException(status_code=404, detail="Circuit was not found.")
+    record = Ticket(
+        id=next_ticket_id(session),
+        customer_id=payload.customer_id,
+        text=payload.text.strip(),
+        ticket_class=payload.ticket_class,
+        priority=payload.priority,
+        contract_id=payload.contract_id,
+        circuit_id=payload.circuit_id,
+        sla_due_at=payload.sla_due_at,
+    )
     return commit_and_refresh(session, record)
 
 
