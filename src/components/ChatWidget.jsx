@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 const SUGGESTIONS = [
   "Give me a detailed summary of this customer account.",
