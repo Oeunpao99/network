@@ -350,7 +350,7 @@
 <script>
 const crmParams = new URLSearchParams(window.location.search);
 if (crmParams.get('embedded') === '1') document.body.classList.add('embedded');
-const API_BASE = (crmParams.get('apiBase') || 'http://localhost:8000').replace(/\/$/, '');
+const API_BASE = (crmParams.get('apiBase') || '').replace(/\/$/, '');
 
 /* ============ ICONS ============ */
 const ICONS = {
