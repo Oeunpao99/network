@@ -1,4 +1,4 @@
-const PROTOTYPE_URL = "/tc-crm-prototype_1%20(1).html";
+const PROTOTYPE_URL = import.meta.env.BASE_URL + "tc-crm-prototype_1%20(1).html";
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
 function TelecomCrmPrototype({ active, view, selection }) {
