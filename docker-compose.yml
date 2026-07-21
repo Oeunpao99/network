@@ -1,4 +1,33 @@
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - qgis-server
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fiberline}:${POSTGRES_PASSWORD:-fiberline}@db:5432/${POSTGRES_DB:-fiberline}
+      CORS_ORIGINS: http://localhost:80,http://127.0.0.1:80,http://frontend
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./public/gis:/app/public/gis
+
   db:
     image: postgres:16-alpine
     environment:
@@ -14,6 +43,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   qgis-server:
     image: qgis/qgis-server:latest
@@ -24,6 +54,7 @@ services:
       - ./public/gis:/data:ro
     ports:
       - "8081:80"
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+dist
+.vscode
+.claude
+.scannerwork
+__pycache__
+*.pyc
+.venv
+.env
+*.log
+sonar-project.properties
+tc-crm-prototype_1 (1).html
