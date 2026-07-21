@@ -1,5 +1,5 @@
 const PROTOTYPE_URL = import.meta.env.BASE_URL + "tc-crm-prototype_1%20(1).html";
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 function TelecomCrmPrototype({ active, view, selection }) {
   const selectionQuery = selection?.type === "customer" ? `&accountId=${encodeURIComponent(selection.id)}` : selection?.type === "ticket" ? `&ticketId=${encodeURIComponent(selection.id)}` : "";
